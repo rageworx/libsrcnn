@@ -1,4 +1,5 @@
 # libsrcnn
+### Super-Resolution imaging with Convolutional Neural Network
 A stand-alone library for Super-Resolution, Non-OpenCV model related in these projects:
 * https://github.com/rageworx/SRCNN_OpenCV_GCC
 * https://github.com/shuwang127/SRCNN_Cpp.
