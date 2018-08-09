@@ -2,8 +2,8 @@
 #define __LIBSRCNN_H__
 
 #ifdef LIBSRCNNSTATIC
-	#define DLL_PUBLIC
-	#define DLL_LOCAL
+    #define DLL_PUBLIC
+    #define DLL_LOCAL
 #else
 #if defined _WIN32 || defined __CYGWIN__
   #ifdef BUILDING_DLL

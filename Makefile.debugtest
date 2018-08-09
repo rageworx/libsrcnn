@@ -1,0 +1,50 @@
+# Makefile for libsrcnn debug test static build
+# by Raphael Kim
+
+CPP = gcc
+CXX = g++
+AR  = ar
+
+# FLTK configs 
+FCG = fltk-config --use-images
+FLTKCFG_CXX := $(shell ${FCG} --cxxflags)
+FLTKCFG_LFG := $(shell ${FCG} --ldflags)
+
+SRC_PATH = src
+OBJ_PATH = obj
+BIN_PATH = bin
+FLI_PATH = ../fl_imgtk/lib
+TARGET   = libsrcnndebug
+
+SRCS  = $(wildcard $(SRC_PATH)/*.cpp)
+OBJS  = $(SRCS:$(SRC_PATH)/%.cpp=$(OBJ_PATH)/%.o)
+
+CFLAGS  = -mtune=native -fopenmp -ffast-math
+CFLAGS += -I$(SRC_PATH)
+CFLAGS += -I$(FLI_PATH)
+CFLAGS += -g
+CFLAGS += -DLIBSRCNNSTATIC -DFORTESTINGBIN -DDEBUG
+CFLAGS += $(FLTKCFG_CXX)
+
+LFLAGS  = -L$(FLI_PATH)
+LFLAGS += -static
+LFLAGS += -lfl_imgtk
+LFLAGS += $(FLTKCFG_LFG)
+
+all: prepare $(BIN_PATH)/$(TARGET)
+
+prepare:
+	@mkdir -p $(OBJ_PATH)
+	@mkdir -p $(BIN_PATH)
+
+clean:
+	@rm -rf $(OBJ_PATH)/*.o
+	@rm -rf $(BIN_PATH)/$(TARGET)
+
+$(OBJS): $(OBJ_PATH)/%.o: $(SRC_PATH)/%.cpp
+	@echo "Compiling $< ..."
+	@$(CXX) $(CFLAGS) $(LFLAGS) -c $< -o $@
+
+$(BIN_PATH)/$(TARGET): $(OBJS)
+	@echo "Linking $@ ..."
+	@$(CXX) $(OBJ_PATH)/*.o $(CFLAGS) $(LFLAGS) -o $@

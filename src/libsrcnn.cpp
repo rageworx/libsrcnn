@@ -27,9 +27,14 @@
 
 #include "libsrcnn.h"
 #include "frawscale.h"
+#include "minmax.h"
 
 /* pre-calculated convolutional data */
 #include "convdata.h"
+
+#ifdef DEBUG
+#include "debugtool.h"
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -73,9 +78,12 @@ static bool opt_cubicfilter = true;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void convolution99( ImgF32 &src, ImgF32 &dst, const KernelMat99 kernel, float bias );
-void convolution11( ImgConv1Layers &src, ImgYCbCr &dst, const ConvKernel1 kernel, float bias );
-void convolution55( ImgConv2Layers &src, ImgU8 &dst, const ConvKernel32_55 kernel, float bias );
+void convolution99( ImgF32 &src, ImgF32 &dst, \
+                    const KernelMat99 kernel, float bias );
+void convolution11( ImgConv1Layers &src, ImgYCbCr &dst, \
+                    const ConvKernel1 kernel, float bias );
+void convolution55( ImgConv2Layers &src, ImgU8 &dst, \
+                    const ConvKernel32_55 kernel, float bias );
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -189,13 +197,21 @@ void converImgU8toYCbCr( ImgU8 &src, ImgYCbCr &out )
         float fB = src.buff[ ( cnt * src.depth ) + 2 ];
         
         // Y
-        out.Y.buff[cnt] = ( 0.299f * fR ) + ( 0.587f * fG ) + ( 0.114f * fB );
+        out.Y.buff[cnt] = ( 0.299f * fR ) + 
+                          ( 0.587f * fG ) + 
+                          ( 0.114f * fB );
         
         // Cb
-        out.Cb.buff[cnt] = ( -0.16874f * fR ) - ( 0.33126f * fG ) + ( 0.5f * fB );
+        out.Cb.buff[cnt] = 128.f - 
+                           ( 0.1687f * fR ) - 
+                           ( 0.3313f * fG ) + 
+                           ( 0.5f * fB );
 
         // Cr
-        out.Cr.buff[cnt] = ( 0.5f * fR ) - ( 0.41869f * fG ) - ( 0.08131f * fB );
+        out.Cr.buff[cnt] = 128.f + 
+                           ( 0.5f * fR ) - 
+                           ( 0.4187f * fG ) - 
+                           ( 0.0813f * fB );
     }
 }
 
@@ -215,16 +231,17 @@ void convertImgF32x3toImgU8( ImgF32* src, ImgU8 &out )
     for( unsigned cnt=0; cnt<imgsz; cnt++ )
     {
         float fY  = src[0].buff[cnt];
-        float fCb = src[1].buff[cnt];
-        float fCr = src[2].buff[cnt];
+        float fCb = src[1].buff[cnt] - 128.f;
+        float fCr = src[2].buff[cnt] - 128.f;
+        
+        float fR  = MIN(255.f, fY + 45.f * fCr / 32.f);
+        float fG  = MIN(255.f, fY - ( 11.f * fCb + 23.f * fCr ) / 32.f);
+        float fB  = MIN(255.f, fY + 113.f * fCb / 64.f );
 
         // Red -> Green -> Blue ...
-        out.buff[( cnt * 3 ) + 0] = \
-                (unsigned char)(fY + ( 1.402f * fCr ));
-        out.buff[( cnt * 3 ) + 1] = \
-                (unsigned char)(fY - ( 0.34414f * fCb ) - ( 0.71414f * fCr ));
-        out.buff[( cnt * 3 ) + 2] = \
-                (unsigned char)(fY + ( 1.772f * fCb ));
+        out.buff[( cnt * 3 ) + 0] = (unsigned char)fR;
+        out.buff[( cnt * 3 ) + 1] = (unsigned char)fG;
+        out.buff[( cnt * 3 ) + 2] = (unsigned char)fB;
     }
 }
 
@@ -475,6 +492,10 @@ int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff,
     
     converImgU8toYCbCr( imgSrc, imgYCbCr );
     
+#ifdef DEBUG
+    saveImgYCbCr( &imgYCbCr, "debugimg" );
+#endif
+    
     /* Resize the Y-Cr-Cb Channel with Bicubic Interpolation */
     libsrcnn::ImgF32 imgResized[3];
     const float* refimgbuf[3] = { imgYCbCr.Y.buff, 
@@ -503,9 +524,15 @@ int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff,
                    &imgResized[cnt].buff );
     }
     
-    // Release splitted image of Y-Cr-Cb --
+    // Release splitted image of Y-Cb-Cr --
     discardImgYCbCr( imgYCbCr );
 
+#ifdef DEBUG
+    saveImgF32( &imgResized[0], "resized_Y.png" );
+    saveImgF32( &imgResized[1], "resized_Cb.png" );
+    saveImgF32( &imgResized[2], "resized_Cr.png" );
+#endif
+    
     /******************* The First Layer *******************/
 
     libsrcnn::ImgConv1Layers imgConv1;
