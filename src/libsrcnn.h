@@ -1,6 +1,10 @@
 #ifndef __LIBSRCNN_H__
 #define __LIBSRCNN_H__
 
+#ifdef LIBSRCNNSTATIC
+	#define DLL_PUBLIC
+	#define DLL_LOCAL
+#else
 #if defined _WIN32 || defined __CYGWIN__
   #ifdef BUILDING_DLL
     #ifdef __GNUC__
@@ -25,6 +29,7 @@
     #define DLL_LOCAL
   #endif
 #endif
+#endif /// of LIBSRCNNSTATIC
 
 int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff, 
                              unsigned w, unsigned h, unsigned d,

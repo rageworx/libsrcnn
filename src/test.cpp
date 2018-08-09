@@ -1,6 +1,6 @@
 #ifdef FORTESTINGBIN
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(WIN32)
 	#include <windows.h>
 #endif
 
@@ -17,14 +17,26 @@
 #include <FL/Fl_Image.H>
 #include <FL/Fl_RGB_Image.H>
 #include <FL/Fl_BMP_Image.H>
-#include <Fl/Fl_PNG_Image.H>
-#include <Fl/Fl_JPEG_Image.H>
+#include <FL/Fl_PNG_Image.H>
+#include <FL/Fl_JPEG_Image.H>
 
+#if defined(__linux__)
+#include <png.h>
+#else
 #include <FL/images/png.h>
+#endif
+
+#include <string>
 
 #include "libsrcnn.h"
 #include "fl_imgtk.h"
 #include "tick.h"
+
+////////////////////////////////////////////////////////////////////////////////
+
+using namespace std;
+
+////////////////////////////////////////////////////////////////////////////////
 
 bool convImage( Fl_RGB_Image* src, Fl_RGB_Image* &dst )
 {
@@ -267,24 +279,138 @@ bool savetocolorpng( Fl_RGB_Image* imgcached, const char* fpath )
     return false;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+static float    image_multiply  = 2.0f;
+static string   path_me;
+static string   file_me;
+static string   file_src;
+static string   file_dst;
+
+bool parseArgs( int argc, char** argv )
+{
+    for( int cnt=0; cnt<argc; cnt++ )
+    {
+        string strtmp = argv[ cnt ];
+        size_t fpos   = string::npos;
+
+        if ( cnt == 0 )
+        {
+            fpos = strtmp.find_last_of( "\\" );
+
+            if ( fpos == string::npos )
+            {
+                fpos = strtmp.find_last_of( "/" );
+            }
+
+            if ( fpos != string::npos )
+            {
+                path_me = strtmp.substr( 0, fpos );
+                file_me = strtmp.substr( fpos + 1 );
+            }
+            else
+            {
+                file_me = strtmp;
+            }
+        }
+        else
+        {
+            if ( strtmp.find( "--scale=" ) == 0 )
+            { 
+                string strval = strtmp.substr( 8 );
+                if ( strval.size() > 0 )
+                {
+                    float tmpfv = atof( strval.c_str() );
+                    if ( tmpfv > 0.f )
+                    {
+                        image_multiply = tmpfv;
+                    }
+                }
+            }
+            else
+            if ( file_src.size() == 0 )
+            {
+                file_src = strtmp;
+            }
+            else
+            if ( file_dst.size() == 0 )
+            {
+                file_dst = strtmp;
+            }
+        }
+    }
+    
+    if ( ( file_src.size() > 0 ) && ( file_dst.size() == 0 ) )
+    {
+        string convname = file_src;
+        string srcext;
+        
+        // changes name without file extention.
+        size_t posdot = file_src.find_last_of( "." );
+        if ( posdot != string::npos )
+        {
+            convname = file_src.substr( 0, posdot );
+            srcext   = file_src.substr( posdot );
+        }
+        
+        convname += "_resized";
+        if ( srcext.size() > 0 )
+        {
+            convname += srcext;
+        }
+        
+        file_dst = convname;
+    }
+    
+    if ( ( file_src.size() > 0 ) && ( file_dst.size() > 0 ) )
+    {
+        return true;
+    }
+    
+    return false;
+}
+
+void printAbout()
+{
+	printf( "%s testing program with FLTK-1.3.4-1-ts\n", file_me.c_str() );
+	printf( "(C)Copyrighted ~2018 Raphael Kim\n\n" );
+	fflush( stdout );	
+}
+
+void printUsage()
+{
+	printf( "  usage:\n" );
+	printf( "      %s [source image file] [options] (output image file)\n", 
+	        file_me.c_str() );
+	printf( "\n" );
+	printf( "  options:\n" );
+	printf( "      --scale=(ratio : 0.0<999...)\n" );
+	printf( "\n" );
+}
 
 int main( int argc, char** argv )
 {	
-	printf( "Test for SRCNN with FLTK-1.3.4-1-ts\n" );
-	printf( "(C)2018 Raphael Kim\n\n" );
-	fflush( stdout );
+	if ( parseArgs( argc, argv ) == false )
+	{
+		printAbout();
+		printUsage();
+		return -1;
+	}
 	
-	const char imgtestpath[] = "Pictures/butterfly_GT.bmp";
+	printf( "- Loading image : %s", file_src.c_str() );
 	
 	Fl_RGB_Image* imgTest = NULL;
 	
 	uchar* imgbuff = NULL;
 	size_t imgsz = 0;
 	
-    int imgtype = testImageFile( imgtestpath, &imgbuff, &imgsz );
+    int imgtype = testImageFile( file_src.c_str(), &imgbuff, &imgsz );
 	if ( imgtype > 0 )
 	{
-		printf( "- Image loaded : ");
+		printf( "\n" );
+		printf( "- Image loaded type : ");
 		
 		switch( imgtype )
 		{
@@ -310,7 +436,7 @@ int main( int argc, char** argv )
 		
 		if ( imgTest != NULL )
 		{
-			printf( "%u x %u x %u\n", imgTest->w(), imgTest->h(), imgTest->d() );
+			printf( "%u x %u x %u bytes\n", imgTest->w(), imgTest->h(), imgTest->d() );
 			fflush( stdout );
 		}
 	}
@@ -358,7 +484,19 @@ int main( int argc, char** argv )
 				Fl_RGB_Image* imgDump = new Fl_RGB_Image( outbuff, new_w, new_h, 3 );
 				if ( imgDump != NULL )
 				{
-					savetocolorpng( imgDump, "testout.png" );
+					printf( "- Saving result to %s ... ", file_dst.c_str() );
+					
+					if ( savetocolorpng( imgDump, file_dst.c_str() ) == true )
+					{
+						printf( "Ok.\n" );
+					}
+					else
+					{
+						printf( "Failure.\n" );
+					}
+					
+					fflush( stdout );
+						
 					fl_imgtk::discard_user_rgb_image( imgDump );
 				}
 			}
@@ -371,19 +509,19 @@ int main( int argc, char** argv )
 		}
 		else
 		{
-			printf( "error: load failre - %s\n",  imgtestpath );
+			printf( "- Error: Broken image.\n" );
 		}
 	}
 	else
 	{
-		printf( "Failed to load bitmap.\n" );
+		printf( "- Failed to load image.\n" );
 	}
 
 	// let check memory leak before program terminated.
 	printf( "- Input any number and press ENTER to terminate, check memory state.\n" );
 	fflush( stdout );
 	unsigned meaningless = 0;
-	scanf( "%d", &meaningless );
+	scanf( "- %d", &meaningless );
 	
 	return 0;
 }
