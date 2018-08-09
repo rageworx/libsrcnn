@@ -1,4 +1,4 @@
-# Makefile for libsrcnn
+# Makefile for libsrcnn for linux so.
 # by Raphael Kim
 
 CPP = gcc
@@ -8,23 +8,26 @@ AR  = ar
 SRC_PATH = src
 OBJ_PATH = obj
 BIN_PATH = lib
-TARGET   = libsrcnn.a
+SO_EXT   = .so
+LIB_EXT  = .a
+TARGET   = libsrcnn$(SO_EXT)
 
-SRCS = $(wildcard $(SRC_PATH)/*.cpp)
-OBJS = $(SRCS:$(SRC_PATH)/%.cpp=$(OBJ_PATH)/%.o)
+SRCS  = $(SRC_PATH)/frawscale.cpp
+SRCS += $(SRC_PATH)/libsrcnn.cpp
+OBJS  = $(SRCS:$(SRC_PATH)/%.cpp=$(OBJ_PATH)/%.o)
 
-CFLAGS  = -mtune=native -fopenmp
+CFLAGS  = -mtune=native -fopenmp -ffast-math
 CFLAGS += -I$(SRC_PATH)
+CFLAGS += -DBUILDING_DLL
 
-LFLAGS  = -ffast-math
-LFLAGS += -O2
+LFLAGS  = -O2
+LFLAGS += -fopenmp
 
 all: prepare $(BIN_PATH)/$(TARGET)
 
 prepare:
 	@mkdir -p $(OBJ_PATH)
 	@mkdir -p $(BIN_PATH)
-	@echo $(SRCS)
 
 clean:
 	@rm -rf $(OBJ_PATH)/*.o
@@ -36,5 +39,5 @@ $(OBJS): $(OBJ_PATH)/%.o: $(SRC_PATH)/%.cpp
 
 $(BIN_PATH)/$(TARGET): $(OBJS)
 	@echo "Linking $@ ..."
-	@$(AR) -q $@ $(OBJ_PATH)/*.o
+	@$(CXX) -shared $(OBJ_PATH)/*.o $(CFLAGS) $(LFLAGS) -o $@
 	@cp -rf $(SRC_PATH)/libsrcnn.h $(BIN_PATH)

@@ -263,6 +263,8 @@ bool savetocolorpng( Fl_RGB_Image* imgcached, const char* fpath )
             }
         }
     }
+
+    return false;
 }
 
 
@@ -374,7 +376,6 @@ int main( int argc, char** argv )
 	}
 	else
 	{
-		printf( "Failed to load bitmap.\n" );
 		printf( "Failed to load bitmap.\n" );
 	}
 

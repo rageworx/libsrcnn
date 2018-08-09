@@ -26,4 +26,4 @@ This is an open source project from original of this:
 * Your G++.
 
 ## How to build ?
-* build with ```make```.
+* build with ```make -f Makefile.{your platform}```.
