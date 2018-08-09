@@ -10,8 +10,9 @@ OBJ_PATH = obj
 BIN_PATH = lib
 TARGET   = libsrcnn.a
 
-SRCS = $(wildcard $(SRC_PATH)/*.cpp)
-OBJS = $(SRCS:$(SRC_PATH)/%.cpp=$(OBJ_PATH)/%.o)
+SRCS  = $(SRC_PATH)/frawscale.cpp
+SRCS += $(SRC_PATH)/libsrcnn.cpp
+OBJS  = $(SRCS:$(SRC_PATH)/%.cpp=$(OBJ_PATH)/%.o)
 
 CFLAGS  = -mtune=native -fopenmp -ffast-math
 CFLAGS += -I$(SRC_PATH)
