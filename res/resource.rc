@@ -1,0 +1,32 @@
+#include <windows.h>
+#include "resource.h"
+
+LANGUAGE LANG_NEUTRAL, LANG_NEUTRAL
+1 VERSIONINFO
+    FILEVERSION     APP_VERSION
+    PRODUCTVERSION  APP_VERSION
+    FILEOS          VOS_NT_WINDOWS32
+    FILETYPE        VFT_DLL
+    FILESUBTYPE     VFT2_UNKNOWN
+    FILEFLAGSMASK   0x0000003F
+    FILEFLAGS       0x00000000
+{
+    BLOCK "StringFileInfo"
+    {
+        BLOCK "00000000"
+        {
+            VALUE "CompanyName", 		"Rageworx software"
+            VALUE "FileDescription", 	"shared library for Super-Resolution Imaging with Neural Networks"
+            VALUE "InternalName", 		"libsrcnn"
+            VALUE "LegalCopyright", 	"Raphael Kim (rageworx@gmail.com)"
+            VALUE "LegalTrademarks", 	"Rageworx software"
+            VALUE "OriginalFilename", 	"libsrcnn"
+            VALUE "ProductName", 		"shared library for Super-Resolution Imaging with Neural Networks"
+            VALUE "ProductVersion",     APP_VERSION_STR
+        }
+    }
+    BLOCK "VarFileInfo"
+    {
+        VALUE "Translation", 0x0000, 0x0000
+    }
+}

@@ -4,26 +4,30 @@
 CPP = gcc
 CXX = g++
 AR  = ar
+WRC = windres
 
 SRC_PATH = src
 OBJ_PATH = obj
 BIN_PATH = lib
+RES_PATH = res
 SO_EXT   = .dll
-LIB_EXT  = .lib
+LIB_EXT  = .a
 TARGET   = libsrcnn$(SO_EXT)
+LIB_EXPT = libsrcnn$(LIB_EXT)
+DEF_FILE = $(SRC_PATH)/libsrcnn.def
 
 SRCS  = $(SRC_PATH)/frawscale.cpp
 SRCS += $(SRC_PATH)/libsrcnn.cpp
 OBJS  = $(SRCS:$(SRC_PATH)/%.cpp=$(OBJ_PATH)/%.o)
 
-CFLAGS  = -mtune=native -fopenmp -ffast-math
-CFLAGS += -I$(SRC_PATH)
+CFLAGS  = -mwindows -mtune=native -fopenmp -ffast-math
+CFLAGS += -I$(SRC_PATH) -I$(RES_PATH)
 CFLAGS += -DBUILDING_DLL
 
-LFLAGS  = -O2 -s
+LFLAGS  = -O2 -s -static
 LFLAGS += -fopenmp
 
-all: prepare $(BIN_PATH)/$(TARGET)
+all: prepare $(BIN_PATH)/$(TARGET) exportlib
 
 prepare:
 	@mkdir -p $(OBJ_PATH)
@@ -32,12 +36,22 @@ prepare:
 clean:
 	@rm -rf $(OBJ_PATH)/*.o
 	@rm -rf $(BIN_PATH)/$(TARGET)
+	@rm -rf $(BIN_PATH)/*.h
+	@rm -rf $(BIN_PATH)/$(LIB_EXPT)
 
 $(OBJS): $(OBJ_PATH)/%.o: $(SRC_PATH)/%.cpp
 	@echo "Compiling $< ..."
 	@$(CXX) $(CFLAGS) $(LFLAGS) -c $< -o $@
+	
+$(OBJ_PATH)/wrc.o: $(RES_PATH)/resource.rc
+	@$(WRC) -i $< $(CLFAGS) -o $@
 
-$(BIN_PATH)/$(TARGET): $(OBJS)
+$(BIN_PATH)/$(TARGET): $(OBJS) $(OBJ_PATH)/wrc.o
 	@echo "Linking $@ ..."
 	@$(CXX) -shared $(OBJ_PATH)/*.o $(CFLAGS) $(LFLAGS) -o $@
 	@cp -rf $(SRC_PATH)/libsrcnn.h $(BIN_PATH)
+
+exportlib: $(BIN_PATH)/$(TARGET)
+	@echo "Exporting Lib ..."
+	dlltool -d $(DEF_FILE) -l $(BIN_PATH)/$(LIB_EXPT)
+	
