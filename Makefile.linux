@@ -16,7 +16,10 @@ SRCS  = $(SRC_PATH)/frawscale.cpp
 SRCS += $(SRC_PATH)/libsrcnn.cpp
 OBJS  = $(SRCS:$(SRC_PATH)/%.cpp=$(OBJ_PATH)/%.o)
 
-CFLAGS  = -mtune=native -fopenmp -ffast-math
+# -fPIC option usally used for nVidia JetsonTX2 AARCH64.
+# remove this option if it cuased to build error.
+CFLAGS  = -mtune=native -fopenmp -ffast-math 
+CFLAGS += -fPIC
 CFLAGS += -I$(SRC_PATH)
 CFLAGS += -DBUILDING_DLL
 
