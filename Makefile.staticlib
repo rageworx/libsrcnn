@@ -8,23 +8,23 @@ AR  = ar
 SRC_PATH = src
 OBJ_PATH = obj
 BIN_PATH = lib
-TARGET   = libsrcnn
+TARGET   = libsrcnn.a
 
 SRCS = $(wildcard $(SRC_PATH)/*.cpp)
 OBJS = $(SRCS:$(SRC_PATH)/%.cpp=$(OBJ_PATH)/%.o)
 
 CFLAGS  = -mtune=native -fopenmp -ffast-math
 CFLAGS += -I$(SRC_PATH)
+CFLAGS += -DLIBSRCNNSTATIC
 
 LFLAGS  = -O2
-LFLAGS += 
+FLAGS  += -static
 
 all: prepare $(BIN_PATH)/$(TARGET)
 
 prepare:
 	@mkdir -p $(OBJ_PATH)
 	@mkdir -p $(BIN_PATH)
-	@echo $(SRCS)
 
 clean:
 	@rm -rf $(OBJ_PATH)/*.o

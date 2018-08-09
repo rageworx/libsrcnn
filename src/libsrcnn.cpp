@@ -222,9 +222,9 @@ void convertImgF32x3toImgU8( ImgF32* src, ImgU8 &out )
         out.buff[( cnt * 3 ) + 0] = \
                 (unsigned char)(fY + ( 1.402f * fCr ));
         out.buff[( cnt * 3 ) + 1] = \
-                (unsigned char)(fY - ( 0.34414f * fCb ) - ( 0.71414 * fCr ));
+                (unsigned char)(fY - ( 0.34414f * fCb ) - ( 0.71414f * fCr ));
         out.buff[( cnt * 3 ) + 2] = \
-                (unsigned char)(fY + ( 1.772 * fCb ));
+                (unsigned char)(fY + ( 1.772f * fCb ));
     }
 }
 

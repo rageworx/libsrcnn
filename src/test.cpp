@@ -455,10 +455,10 @@ int main( int argc, char** argv )
 			unsigned     ref_w   = imgRGB->w();
 			unsigned     ref_h   = imgRGB->h();
 			unsigned     ref_d   = imgRGB->d();
-			float mulf = 2.0f;
 			uchar*       outbuff = NULL;
 			unsigned	 outsz   = 0;
 			
+			printf( "- Scaling ratio : %.2f\n", image_multiply );
 			printf( "- Processing SRCNN ... " );
 			fflush( stdout );
 			
@@ -468,7 +468,7 @@ int main( int argc, char** argv )
 			                         ref_w,
 							 		 ref_h,
 									 ref_d,
-						 			 mulf,
+						 			 image_multiply,
 					 				 outbuff,
 									 outsz );
 			
@@ -476,8 +476,8 @@ int main( int argc, char** argv )
 			
 			if ( ( reti == 0 ) && ( outsz > 0 ) )
 			{
-				unsigned new_w = ref_w * mulf;
-				unsigned new_h = ref_h * mulf;
+				unsigned new_w = ref_w * image_multiply;
+				unsigned new_h = ref_h * image_multiply;
 				
 				printf( "Test Ok, took %u ms.\n", tick1 - tick0 );
 			
