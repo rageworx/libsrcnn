@@ -192,9 +192,9 @@ void converImgU8toYCbCr( ImgU8 &src, ImgYCbCr &out )
     #pragma omp parallel for
     for( unsigned cnt=0; cnt<imgsz; cnt++ )
     {
-        float fR = src.buff[ ( cnt * src.depth ) + 0 ];
-        float fG = src.buff[ ( cnt * src.depth ) + 1 ];
-        float fB = src.buff[ ( cnt * src.depth ) + 2 ];
+        float fR = (float)src.buff[ ( cnt * src.depth ) + 0 ];
+        float fG = (float)src.buff[ ( cnt * src.depth ) + 1 ];
+        float fB = (float)src.buff[ ( cnt * src.depth ) + 2 ];
         
         // Y
         out.Y.buff[cnt] = ( 0.299f * fR ) + 
@@ -212,6 +212,7 @@ void converImgU8toYCbCr( ImgU8 &src, ImgYCbCr &out )
                            ( 0.5f * fR ) - 
                            ( 0.4187f * fG ) - 
                            ( 0.0813f * fB );
+                       
     }
 }
 
@@ -239,9 +240,9 @@ void convertImgF32x3toImgU8( ImgF32* src, ImgU8 &out )
         float fB  = MIN(255.f, fY + 113.f * fCb / 64.f );
 
         // Red -> Green -> Blue ...
-        out.buff[( cnt * 3 ) + 0] = (unsigned char)fR;
-        out.buff[( cnt * 3 ) + 1] = (unsigned char)fG;
-        out.buff[( cnt * 3 ) + 2] = (unsigned char)fB;
+        out.buff[( cnt * 3 ) + 0] = (unsigned char)MAX( 0.f, fR );
+        out.buff[( cnt * 3 ) + 1] = (unsigned char)MAX( 0.f, fG );
+        out.buff[( cnt * 3 ) + 2] = (unsigned char)MAX( 0.f, fB );
     }
 }
 
@@ -528,8 +529,11 @@ int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff,
     discardImgYCbCr( imgYCbCr );
 
 #ifdef DEBUG
+    printf("rY:");
     saveImgF32( &imgResized[0], "resized_Y.png" );
+    printf("rCb:");
     saveImgF32( &imgResized[1], "resized_Cb.png" );
+    printf("rCr:");
     saveImgF32( &imgResized[2], "resized_Cr.png" );
 #endif
     

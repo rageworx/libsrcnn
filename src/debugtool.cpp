@@ -96,11 +96,12 @@ bool convertF32toU8( ImgF32* src, ImgU8 &dst )
     
     if ( fMin < 0.f )
     {
-        printf( "Error @ convertF32toU8(), Min float under zero : %.2f\n", fMin );
+        printf( "Warning @ convertF32toU8(), Min float under zero : %.2f\n", 
+                fMin );
         fflush( stdout );
-        
-        fMin = 0.f;
     }
+    
+    printf( "fMin:fMax=%.2f:%.2f", fMin, fMax );
     
     #pragma omp parallel for
     for( unsigned cnt=0; cnt<srcsz; cnt++ )
@@ -164,14 +165,17 @@ void saveImgYCbCr( void* img, const char* fnameprefix )
     char strFnMap[1024] = {0};
     
     // Write Y
+    printf("saveImgYCbCr(%s), Y:", fnameprefix ); fflush( stdout );
     sprintf( strFnMap, "%s_Y.png", fnameprefix );
     saveImgF32( &refimg->Y, strFnMap );
     
     // Write Cb
+    printf("Cb:" ); fflush( stdout );
     sprintf( strFnMap, "%s_Cb.png", fnameprefix );
     saveImgF32( &refimg->Cb, strFnMap );
 
     // Write Cr
+    printf("Cr:" ); fflush( stdout );
     sprintf( strFnMap, "%s_Cr.png", fnameprefix );
     saveImgF32( &refimg->Cr, strFnMap );
     
