@@ -33,6 +33,19 @@ This is an open source project from original of this:
 * Embedded Linux, ARM, AARCH64
 * MacOSX ( clang, llvm )
 
+## Latest Changes
+### Verison 0.1.5.18
+* Supports variable filters for interpolation.
+    1. Nearest
+    1. Bilinear
+    1. Bicubic
+    1. Lanczso-3
+    1. B-Spline
+
+## Previous Changes
+### Version 0.1.4.16
+* Bug fixed for color space conversion.
+
 ## License
 * Follows original source GPLv2, but this project is LGPLv3.
 

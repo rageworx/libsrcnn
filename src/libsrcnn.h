@@ -31,10 +31,20 @@
 #endif
 #endif /// of LIBSRCNNSTATIC
 
-int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff, 
-                             unsigned w, unsigned h, unsigned d,
-                             float muliply,
-                             unsigned char* &outbuff,
-                             unsigned &outbuffsz );
+typedef enum DLL_PUBLIC
+{
+    SRCNNF_Nearest = 0,
+    SRCNNF_Bilinear,
+    SRCNNF_Bicubic,
+    SRCNNF_Lanczos3,
+    SRCNNF_Bspline
+}SRCNNFilterType;
+
+void DLL_PUBLIC ConfigureFilterSRCNN( SRCNNFilterType ftype );
+int  DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff, 
+                              unsigned w, unsigned h, unsigned d,
+                              float muliply,
+                              unsigned char* &outbuff,
+                              unsigned &outbuffsz );
 
 #endif /// of __SRCNN_H__

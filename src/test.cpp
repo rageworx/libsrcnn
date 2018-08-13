@@ -289,6 +289,7 @@ static string   path_me;
 static string   file_me;
 static string   file_src;
 static string   file_dst;
+static SRCNNFilterType filter_type = SRCNNF_Bicubic;
 
 bool parseArgs( int argc, char** argv )
 {
@@ -331,6 +332,40 @@ bool parseArgs( int argc, char** argv )
                 }
             }
             else
+            if ( strtmp.find( "--filter=" ) == 0 )
+            { 
+                string strval = strtmp.substr( 9 );
+                if ( strval.size() > 0 )
+                {
+                    int tmpi = atoi( strval.c_str() );
+					
+					switch( tmpi )
+					{
+						case 0:
+							filter_type = SRCNNF_Nearest;
+							break;
+							
+						case 1:
+							filter_type = SRCNNF_Bilinear;
+							break;
+							
+						default:
+						case 2:
+							filter_type = SRCNNF_Bicubic;
+							break;
+							
+						case 3:
+							filter_type = SRCNNF_Lanczos3;
+							break;
+							
+						case 4:
+							filter_type = SRCNNF_Bspline;
+							break;
+
+					}
+                }
+            }
+            else
             if ( strtmp.find( "--waitakey" ) == 0 )
             {
                 waitforakey = true;
@@ -364,7 +399,14 @@ bool parseArgs( int argc, char** argv )
         convname += "_resized";
         if ( srcext.size() > 0 )
         {
-            convname += srcext;
+			if ( ( srcext != ".png" ) || ( srcext != ".PNG" ) )
+			{
+				convname += ".png";
+			}
+			else
+			{
+				convname += srcext;
+			}
         }
         
         file_dst = convname;
@@ -456,6 +498,10 @@ int main( int argc, char** argv )
             printf( "%u x %u x %u bytes\n", imgTest->w(), imgTest->h(), imgTest->d() );
             fflush( stdout );
         }
+		
+		delete[] imgbuff;
+		imgbuff = NULL;
+		imgsz = 0;
     }
     
     if ( imgTest != NULL )
@@ -466,7 +512,7 @@ int main( int argc, char** argv )
         
         delete imgTest;
         
-        if ( ( imgRGB->w() > 0 ) && ( imgRGB->h() > 0 ) )
+        if ( ( imgRGB->w() > 0 ) && ( imgRGB->h() > 0 ) && ( imgRGB->d() >= 3 ) )
         {
             const uchar* refbuff = (const uchar*)imgRGB->data()[0];
             unsigned     ref_w   = imgRGB->w();
@@ -476,9 +522,36 @@ int main( int argc, char** argv )
             unsigned     outsz   = 0;
             
             printf( "- Scaling ratio : %.2f\n", image_multiply );
+			printf( "- Filter : ");
+			switch( filter_type )
+			{
+				case SRCNNF_Nearest:
+					printf( "Nearest\n" );
+					break;
+					
+				case SRCNNF_Bilinear:
+					printf( "Bilinear\n" );
+					break;
+					
+				case SRCNNF_Bicubic:
+					printf( "Bicubic\n" );
+					break;
+					
+				case SRCNNF_Lanczos3:
+					printf( "Lanczos3\n" );
+					break;
+					
+				case SRCNNF_Bspline:
+					printf( "B-Spline\n" );
+					break;
+			}
+			
+			ConfigureFilterSRCNN( filter_type );
+			fflush( stdout );
+			
             printf( "- Processing SRCNN ... " );
             fflush( stdout );
-            
+			
             unsigned     tick0 = tick::getTickCount();
             
             int reti = ProcessSRCNN( refbuff,
@@ -526,7 +599,7 @@ int main( int argc, char** argv )
         }
         else
         {
-            printf( "- Error: Broken image.\n" );
+            printf( "- Error: Unsupported image.\n" );
         }
     }
     else

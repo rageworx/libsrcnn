@@ -74,7 +74,9 @@ typedef ImgF32  ImgConv2Layers[CONV2_FILTERS];
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static bool opt_cubicfilter = true;
+static bool             opt_cubicfilter = true;
+static SRCNNFilterType  intp_filter     = SRCNNF_Bicubic;
+
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -469,6 +471,14 @@ void convolution55( ImgConv2Layers &src, ImgU8 &dst, const ConvKernel32_55 kerne
 
 ////////////////////////////////////////////////////////////////////////////////
 
+void DLL_PUBLIC ConfigureFilterSRCNN( SRCNNFilterType ftype )
+{
+    if ( libsrcnn::intp_filter != ftype )
+    {
+        libsrcnn::intp_filter = ftype;
+    }
+}
+
 int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff, 
                              unsigned w, unsigned h, unsigned d,
                              float muliply,
@@ -514,8 +524,33 @@ int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff,
         imgResized[cnt].depth  = 1;
         imgResized[cnt].buff   = NULL;
 
-        FRAWBicubicFilter bcfilter;
-        FRAWResizeEngine  szf( &bcfilter );
+        FRAWGenericFilter* rszfilter;
+        
+        switch( libsrcnn::intp_filter )
+        {
+            default:
+            case SRCNNF_Nearest:
+                rszfilter = new FRAWBoxFilter;
+                break;
+                
+            case SRCNNF_Bilinear:
+                rszfilter = new FRAWBilinearFilter;
+                break;
+                
+            case SRCNNF_Bicubic:
+                rszfilter = new FRAWBicubicFilter;
+                break;
+                
+            case SRCNNF_Lanczos3:
+                rszfilter = new FRAWLanczos3Filter;
+                break;
+                
+            case SRCNNF_Bspline:
+                rszfilter = new FRAWBSplineFilter;
+                break;
+        }
+        
+        FRAWResizeEngine  szf( rszfilter );
             
         szf.scale( refimgbuf[cnt], 
                    imgYCbCr.Y.width,
@@ -523,6 +558,8 @@ int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff,
                    rs_w,
                    rs_h,
                    &imgResized[cnt].buff );
+                   
+        delete rszfilter;
     }
     
     // Release splitted image of Y-Cb-Cr --

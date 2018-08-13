@@ -32,6 +32,9 @@
 //   - Modified for libsrcnn, processing float vectors.
 //   - Removed some filters : Lanczos3, B-Spline, Blackman
 //
+// [2018-08-13]
+//   - Added filters again for : Lanczos3, B-Spline
+//
 ////////////////////////////////////////////////////////////////////////////////
 
 // Filters
@@ -113,6 +116,57 @@ class FRAWBicubicFilter : public FRAWGenericFilter
             if(dVal < 2)
                 return ( q0 + dVal * ( q1 + dVal * ( q2 + dVal * q3 ) ) );
 
+            return 0;
+        }
+};
+
+class FRAWLanczos3Filter : public FRAWGenericFilter
+{
+    public:
+        // Default fixed width = 3
+        FRAWLanczos3Filter() : FRAWGenericFilter(3) {}
+        virtual ~FRAWLanczos3Filter() {}
+
+    public:
+        double Filter(double dVal)
+        {
+            dVal = fabs(dVal);
+            if( dVal < _dWidth )
+            {
+                return ( sinc( dVal ) * sinc( dVal / _dWidth ) );
+            }
+            return 0;
+        }
+
+    private:
+        double sinc( double value )
+        {
+            if( value != 0 )
+            {
+                value *= FILTER_PI;
+                return (sin(value) / value);
+            }
+            return 1;
+        }
+};
+
+class FRAWBSplineFilter : public FRAWGenericFilter
+{
+    public:
+        // Default fixed width = 2
+        FRAWBSplineFilter() : FRAWGenericFilter(2) {}
+        virtual ~FRAWBSplineFilter() {}
+
+    public:
+        double Filter( double dVal )
+        {
+            dVal = fabs(dVal);
+            if( dVal < 1 ) return ( 4 + dVal*dVal*(-6 + 3 * dVal ) ) / 6;
+            if( dVal < 2 )
+            {
+                double t = 2 - dVal;
+                return ( t * t * t / 6);
+            }
             return 0;
         }
 };
