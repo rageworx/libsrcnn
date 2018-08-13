@@ -39,11 +39,11 @@ This is an open source project from original of this:
     1. Nearest
     1. Bilinear
     1. Bicubic
-    1. Lanczso-3
+    1. Lanczos-3
     1. B-Spline
 
 ## Previous Changes
-### Version 0.1.4.16
+### Version 0.1.4.17
 * Bug fixed for color space conversion.
 
 ## License
