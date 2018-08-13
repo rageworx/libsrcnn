@@ -31,6 +31,7 @@
 #include "libsrcnn.h"
 #include "fl_imgtk.h"
 #include "tick.h"
+#include "resource.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -422,7 +423,9 @@ bool parseArgs( int argc, char** argv )
 
 void printAbout()
 {
-    printf( "%s testing program with FLTK-1.3.4-1-ts\n", file_me.c_str() );
+    printf( "%s : libsrcnn testing program with FLTK-1.3.4-1-ts, ver %s\n", 
+            file_me.c_str(),
+            APP_VERSION_STR );
     printf( "(C)Copyrighted ~2018 Raphael Kim\n\n" );
     fflush( stdout );   
 }
@@ -436,7 +439,13 @@ void printUsage()
     printf( "  options:\n" );
     printf( "      --scale=(ratio : 0.0<999...) : adjust size of output image.\n" );
     printf( "      --waitakey                   : wait for ENTER for end of job.\n" );
-    printf( "\n" );
+    printf( "      --filter=(0~4)               : Changes interpolation filter as ...\n" );
+    printf( "               0 = Nearest filter\n" );
+    printf( "               1 = Bilinear filter\n" );
+    printf( "               2 = Bicubic filter (default)\n" );
+    printf( "               3 = Lanzcos-3 filter\n" );
+    printf( "               4 = B-Spline filter\n" );
+    printf( "\n" ); 
 }
 
 int main( int argc, char** argv )
