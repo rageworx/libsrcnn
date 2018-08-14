@@ -32,6 +32,7 @@ COPTS += $(FLTKCFG_CXX)
 # CC FLAG
 CFLAGS  = -I$(SRC_PATH)
 CFLAGS += -I$(LIB_PATH)
+CFLAGS += -Ires
 CFLAGS += -I../fl_imgtk/lib
 CFLAGS += $(DEFS)
 CFLAGS += $(COPTS)
