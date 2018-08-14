@@ -84,7 +84,7 @@ void convolution99( ImgF32 &src, ImgF32 &dst, \
                     const KernelMat99 kernel, float bias );
 void convolution11( ImgConv1Layers &src, ImgYCbCr &dst, \
                     const ConvKernel1 kernel, float bias );
-void convolution55( ImgConv2Layers &src, ImgU8 &dst, \
+void convolution55( ImgConv2Layers &src, ImgF32 &dst, \
                     const ConvKernel32_55 kernel, float bias );
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -383,7 +383,7 @@ void convolution11( ImgConv1Layers &src, ImgF32 &dst, const ConvKernel1 kernel, 
     }
 }
 
-void convolution55( ImgConv2Layers &src, ImgU8 &dst, const ConvKernel32_55 kernel, float bias )
+void convolution55( ImgConv2Layers &src, ImgF32 &dst, const ConvKernel32_55 kernel, float bias )
 {
     /* Expand the src image */
     ImgConv2Layers src2;
@@ -455,11 +455,10 @@ void convolution55( ImgConv2Layers &src, ImgU8 &dst, const ConvKernel32_55 kerne
 
             temp += bias;
 
-            /* Threshold */
-            temp = (temp >= 0) ? temp : 0;
-            temp = (temp <= 255) ? temp : 255;
-
-            dst.buff[ row * dst.width + col ] = (unsigned char)temp;
+			temp = MAX( temp, 0.f );
+			temp = MIN( temp, 255.f );
+			
+            dst.buff[ row * dst.width + col ] = temp;
         }
     }
     
@@ -485,9 +484,8 @@ int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff,
                              float muliply,
                              unsigned char* &outbuff,
                              unsigned &outbuffsz,
-                             bool reqconv,
-                             unsigned char* &convbuff,
-                             unsigned &convbuffsz )
+                             unsigned char** convbuff,
+                             unsigned* convbuffsz )
 {
     if ( ( refbuff == NULL ) || ( w == 0 ) || ( h == 0 ) || ( d == 0 ) )
         return -1;
@@ -509,7 +507,7 @@ int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff,
     
     converImgU8toYCbCr( imgSrc, imgYCbCr );
     
-#ifdef DEBUG
+#ifdef DEBUG_COLORSAPCE
     saveImgYCbCr( &imgYCbCr, "debugimg" );
 #endif
     
@@ -636,23 +634,26 @@ int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff,
     
     /******************* The Third Layer *******************/
 
-    libsrcnn::ImgU8 imgConv3;
+    libsrcnn::ImgF32 imgConv3;
         
-    libsrcnn::initImgU8( imgConv3, 
-                         imgResized[0].width, 
-                         imgResized[0].height,
-                         1 );
+    libsrcnn::initImgF32( imgConv3, 
+                          imgResized[0].width, 
+                          imgResized[0].height );
     
     libsrcnn::convolution55( imgConv2, imgConv3, 
                              weights_conv3_data, 
                              biases_conv3 );
                              
 #ifdef DEBUG
-    saveImgU8( &imgConv3, "conv3.png" );
+    saveImgF32( &imgConv3, "conv3.png" );
 #endif                           
                                 
     // ---------------------------------------------------------
-
+	// Copy Third layer result to Y channel.
+	
+	unsigned convsz = imgResized[0].width * imgResized[0].height;
+	memcpy( imgResized[0].buff, imgConv3.buff, convsz );
+	
     /* Convert the image from YCrCb to RGB Space */
     libsrcnn::ImgU8 imgRGB;
     libsrcnn::convertImgF32x3toImgU8( imgResized, imgRGB );
@@ -681,15 +682,23 @@ int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff,
         resetImgU8( imgRGB );            
     }
     
-    if ( reqconv == true )
+    if ( ( convbuff != NULL ) && ( convbuffsz != NULL ) )
     {
         if ( ( imgConv3.buff != NULL ) && ( retval == 0 ) )
         {
-            convbuffsz = imgConv3.width * imgConv3.height;
-            convbuff = new unsigned char[ convbuffsz ];
-            if ( convbuff != NULL )
+            unsigned bsz = imgConv3.width * imgConv3.height;
+            unsigned char* buff = new unsigned char[ bsz ];
+            if ( buff != NULL )
             {
-                memcpy( convbuff, imgConv3.buff, convbuffsz );  
+				#pragma omp parallel for
+				for( unsigned cnt=0; cnt<bsz; cnt++ )
+                {
+					buff[ cnt ] = (unsigned char)imgConv3.buff[ cnt ];
+				}
+				
+				*convbuff   = buff;
+				*convbuffsz = bsz;
+				
                 retval = 0;
             }
             else
@@ -697,13 +706,13 @@ int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff,
                 retval = -12;
             }
             
-            resetImgU8( imgConv3 );
+            resetImgF32( imgConv3 );
         }
     }
     else
     if ( imgConv3.buff != NULL )
     {
-        resetImgU8( imgConv3 );
+        resetImgF32( imgConv3 );
     }
     
     return retval;

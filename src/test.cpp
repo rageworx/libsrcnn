@@ -32,6 +32,7 @@
 #include "fl_imgtk.h"
 #include "tick.h"
 #include "resource.h"
+#include "minmax.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -200,6 +201,79 @@ int testImageFile( const char* imgfp, uchar** buff,size_t* buffsz )
     }
 
     return reti;
+}
+
+bool savetomonopng( Fl_RGB_Image* imgcached, const char* fpath )
+{
+    if ( imgcached == NULL )
+        return false;
+
+    if ( imgcached->d() != 1 )
+        return false;
+
+    FILE* fp = fopen( fpath, "wb" );
+    if ( fp == NULL )
+        return false;
+
+    png_structp png_ptr     = NULL;
+    png_infop   info_ptr    = NULL;
+    png_bytep   row         = NULL;
+
+    png_ptr = png_create_write_struct( PNG_LIBPNG_VER_STRING, NULL, NULL, NULL );
+    if ( png_ptr != NULL )
+    {
+        info_ptr = png_create_info_struct( png_ptr );
+        if ( info_ptr != NULL )
+        {
+            if ( setjmp( png_jmpbuf( (png_ptr) ) ) == 0 )
+            {
+                int mx = imgcached->w();
+                int my = imgcached->h();
+                int pd = 3;
+
+                png_init_io( png_ptr, fp );
+                png_set_IHDR( png_ptr,
+                              info_ptr,
+                              mx,
+                              my,
+                              8,
+                              PNG_COLOR_TYPE_GRAY,
+                              PNG_INTERLACE_NONE,
+                              PNG_COMPRESSION_TYPE_BASE,
+                              PNG_FILTER_TYPE_BASE);
+
+                png_write_info( png_ptr, info_ptr );
+
+                row = (png_bytep)malloc( imgcached->w() * sizeof( png_byte ) );
+                if ( row != NULL )
+                {
+                    const char* buf = imgcached->data()[0];
+                    int bque = 0;
+
+                    for( int y=0; y<my; y++ )
+                    {
+						memcpy( row, &buf[bque], mx );
+						bque += mx;
+
+                        png_write_row( png_ptr, row );
+                    }
+
+                    png_write_end( png_ptr, NULL );
+
+                    fclose( fp );
+
+                    free(row);
+                }
+
+                png_free_data(png_ptr, info_ptr, PNG_FREE_ALL, -1);
+                png_destroy_write_struct(&png_ptr, (png_infopp)NULL);
+
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 bool savetocolorpng( Fl_RGB_Image* imgcached, const char* fpath )
@@ -590,7 +664,7 @@ int main( int argc, char** argv )
             printf( "- Processing SRCNN ... " );
             fflush( stdout );
             
-            unsigned     tick0 = tick::getTickCount();
+            unsigned tick0 = tick::getTickCount();
             
             int reti = ProcessSRCNN( refbuff,
                                      ref_w,
@@ -599,12 +673,11 @@ int main( int argc, char** argv )
                                      image_multiply,
                                      outbuff,
                                      outsz,
-                                     true,
-                                     convbuff,
-                                     convsz );
+                                     &convbuff,
+                                     &convsz );
             
-            unsigned     tick1 = tick::getTickCount();
-            
+            unsigned tick1 = tick::getTickCount();
+			            
             if ( ( reti == 0 ) && ( outsz > 0 ) )
             {
                 unsigned new_w = ref_w * image_multiply;
@@ -615,7 +688,7 @@ int main( int argc, char** argv )
                 Fl_RGB_Image* imgDump = new Fl_RGB_Image( outbuff, new_w, new_h, 3 );
                 if ( imgDump != NULL )
                 {
-                    printf( "- Saving result to %s ... ", file_dst.c_str() );
+                    printf( "- Saving rezied result to %s ... ", file_dst.c_str() );
                     
                     if ( savetocolorpng( imgDump, file_dst.c_str() ) == true )
                     {
@@ -644,9 +717,9 @@ int main( int argc, char** argv )
                 Fl_RGB_Image* imgDump = new Fl_RGB_Image( convbuff, new_w, new_h, 1 );
                 if ( imgDump != NULL )
                 {
-                    printf( "- Saving convolution result to %s ... ", file_dst.c_str() );
+                    printf( "- Saving convolution result to %s ... ", file_cov.c_str() );
                     
-                    if ( savetocolorpng( imgDump, file_cov.c_str() ) == true )
+                    if ( savetomonopng( imgDump, file_cov.c_str() ) == true )
                     {
                         printf( "Ok.\n" );
                     }
@@ -660,7 +733,7 @@ int main( int argc, char** argv )
                     fl_imgtk::discard_user_rgb_image( imgDump );
                 }
             }           
-            
+            			
             delete imgRGB;
         }
         else

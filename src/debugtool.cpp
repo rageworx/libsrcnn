@@ -93,7 +93,8 @@ bool convertF32toU8( ImgF32* src, ImgU8 &dst )
             fMin = src->buff[ cnt ];
         }
     }
-    
+
+#ifdef DEBUG_COLORSPACE    
     if ( fMin < 0.f )
     {
         printf( "Warning @ convertF32toU8(), Min float under zero : %.2f\n", 
@@ -102,6 +103,7 @@ bool convertF32toU8( ImgF32* src, ImgU8 &dst )
     }
     
     printf( "fMin:fMax=%.2f:%.2f", fMin, fMax );
+#endif
     
     #pragma omp parallel for
     for( unsigned cnt=0; cnt<srcsz; cnt++ )
