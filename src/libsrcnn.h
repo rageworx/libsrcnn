@@ -46,7 +46,8 @@ int  DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff,
                               float muliply,
                               unsigned char* &outbuff,
                               unsigned &outbuffsz,
-							  unsigned char* &convbuff,
-							  unsigned &convbuffsz);
+                              bool reqconv,
+                              unsigned char* &convbuff,
+                              unsigned &convbuffsz);
 
 #endif /// of __SRCNN_H__

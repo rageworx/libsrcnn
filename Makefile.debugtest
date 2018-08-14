@@ -13,6 +13,7 @@ FLTKCFG_LFG := $(shell ${FCG} --ldflags)
 SRC_PATH = src
 OBJ_PATH = obj
 BIN_PATH = bin
+RES_PATH = res
 FLI_PATH = ../fl_imgtk/lib
 TARGET   = libsrcnndebug
 
@@ -22,6 +23,7 @@ OBJS  = $(SRCS:$(SRC_PATH)/%.cpp=$(OBJ_PATH)/%.o)
 CFLAGS  = -mtune=native -fopenmp -ffast-math
 CFLAGS += -I$(SRC_PATH)
 CFLAGS += -I$(FLI_PATH)
+CFLAGS += -I$(RES_PATH)
 CFLAGS += -g
 CFLAGS += -DLIBSRCNNSTATIC -DFORTESTINGBIN -DDEBUG
 CFLAGS += $(FLTKCFG_CXX)

@@ -290,6 +290,7 @@ static string   path_me;
 static string   file_me;
 static string   file_src;
 static string   file_dst;
+static string   file_cov;
 static SRCNNFilterType filter_type = SRCNNF_Bicubic;
 
 bool parseArgs( int argc, char** argv )
@@ -339,31 +340,31 @@ bool parseArgs( int argc, char** argv )
                 if ( strval.size() > 0 )
                 {
                     int tmpi = atoi( strval.c_str() );
-					
-					switch( tmpi )
-					{
-						case 0:
-							filter_type = SRCNNF_Nearest;
-							break;
-							
-						case 1:
-							filter_type = SRCNNF_Bilinear;
-							break;
-							
-						default:
-						case 2:
-							filter_type = SRCNNF_Bicubic;
-							break;
-							
-						case 3:
-							filter_type = SRCNNF_Lanczos3;
-							break;
-							
-						case 4:
-							filter_type = SRCNNF_Bspline;
-							break;
+                    
+                    switch( tmpi )
+                    {
+                        case 0:
+                            filter_type = SRCNNF_Nearest;
+                            break;
+                            
+                        case 1:
+                            filter_type = SRCNNF_Bilinear;
+                            break;
+                            
+                        default:
+                        case 2:
+                            filter_type = SRCNNF_Bicubic;
+                            break;
+                            
+                        case 3:
+                            filter_type = SRCNNF_Lanczos3;
+                            break;
+                            
+                        case 4:
+                            filter_type = SRCNNF_Bspline;
+                            break;
 
-					}
+                    }
                 }
             }
             else
@@ -400,14 +401,14 @@ bool parseArgs( int argc, char** argv )
         convname += "_resized";
         if ( srcext.size() > 0 )
         {
-			if ( ( srcext != ".png" ) || ( srcext != ".PNG" ) )
-			{
-				convname += ".png";
-			}
-			else
-			{
-				convname += srcext;
-			}
+            if ( ( srcext != ".png" ) || ( srcext != ".PNG" ) )
+            {
+                convname += ".png";
+            }
+            else
+            {
+                convname += srcext;
+            }
         }
         
         file_dst = convname;
@@ -415,6 +416,32 @@ bool parseArgs( int argc, char** argv )
     
     if ( ( file_src.size() > 0 ) && ( file_dst.size() > 0 ) )
     {
+        string convname = file_src;
+        string srcext;
+        
+        // changes name without file extention.
+        size_t posdot = file_src.find_last_of( "." );
+        if ( posdot != string::npos )
+        {
+            convname = file_src.substr( 0, posdot );
+            srcext   = file_src.substr( posdot );
+        }
+        
+        convname += "_convolution";
+        if ( srcext.size() > 0 )
+        {
+            if ( ( srcext != ".png" ) || ( srcext != ".PNG" ) )
+            {
+                convname += ".png";
+            }
+            else
+            {
+                convname += srcext;
+            }
+        }
+        
+        file_cov = convname;
+
         return true;
     }
     
@@ -507,10 +534,10 @@ int main( int argc, char** argv )
             printf( "%u x %u x %u bytes\n", imgTest->w(), imgTest->h(), imgTest->d() );
             fflush( stdout );
         }
-		
-		delete[] imgbuff;
-		imgbuff = NULL;
-		imgsz = 0;
+        
+        delete[] imgbuff;
+        imgbuff = NULL;
+        imgsz = 0;
     }
     
     if ( imgTest != NULL )
@@ -529,38 +556,40 @@ int main( int argc, char** argv )
             unsigned     ref_d   = imgRGB->d();
             uchar*       outbuff = NULL;
             unsigned     outsz   = 0;
+            uchar*       convbuff = NULL;
+            unsigned     convsz   = 0;
             
             printf( "- Scaling ratio : %.2f\n", image_multiply );
-			printf( "- Filter : ");
-			switch( filter_type )
-			{
-				case SRCNNF_Nearest:
-					printf( "Nearest\n" );
-					break;
-					
-				case SRCNNF_Bilinear:
-					printf( "Bilinear\n" );
-					break;
-					
-				case SRCNNF_Bicubic:
-					printf( "Bicubic\n" );
-					break;
-					
-				case SRCNNF_Lanczos3:
-					printf( "Lanczos3\n" );
-					break;
-					
-				case SRCNNF_Bspline:
-					printf( "B-Spline\n" );
-					break;
-			}
-			
-			ConfigureFilterSRCNN( filter_type );
-			fflush( stdout );
-			
+            printf( "- Filter : ");
+            switch( filter_type )
+            {
+                case SRCNNF_Nearest:
+                    printf( "Nearest\n" );
+                    break;
+                    
+                case SRCNNF_Bilinear:
+                    printf( "Bilinear\n" );
+                    break;
+                    
+                case SRCNNF_Bicubic:
+                    printf( "Bicubic\n" );
+                    break;
+                    
+                case SRCNNF_Lanczos3:
+                    printf( "Lanczos3\n" );
+                    break;
+                    
+                case SRCNNF_Bspline:
+                    printf( "B-Spline\n" );
+                    break;
+            }
+            
+            ConfigureFilterSRCNN( filter_type );
+            fflush( stdout );
+            
             printf( "- Processing SRCNN ... " );
             fflush( stdout );
-			
+            
             unsigned     tick0 = tick::getTickCount();
             
             int reti = ProcessSRCNN( refbuff,
@@ -569,7 +598,10 @@ int main( int argc, char** argv )
                                      ref_d,
                                      image_multiply,
                                      outbuff,
-                                     outsz );
+                                     outsz,
+                                     true,
+                                     convbuff,
+                                     convsz );
             
             unsigned     tick1 = tick::getTickCount();
             
@@ -603,6 +635,31 @@ int main( int argc, char** argv )
             {
                 printf( "Failed, error code = %d\n", reti );
             }
+            
+            if ( ( reti == 0 ) && ( convsz > 0 ) )
+            {
+                unsigned new_w = ref_w * image_multiply;
+                unsigned new_h = ref_h * image_multiply;
+                            
+                Fl_RGB_Image* imgDump = new Fl_RGB_Image( convbuff, new_w, new_h, 1 );
+                if ( imgDump != NULL )
+                {
+                    printf( "- Saving convolution result to %s ... ", file_dst.c_str() );
+                    
+                    if ( savetocolorpng( imgDump, file_cov.c_str() ) == true )
+                    {
+                        printf( "Ok.\n" );
+                    }
+                    else
+                    {
+                        printf( "Failure.\n" );
+                    }
+                    
+                    fflush( stdout );
+                        
+                    fl_imgtk::discard_user_rgb_image( imgDump );
+                }
+            }           
             
             delete imgRGB;
         }
