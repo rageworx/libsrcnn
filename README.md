@@ -34,6 +34,13 @@ This is an open source project from original of this:
 * MacOSX ( clang, llvm )
 
 ## Latest Changes
+### Verison 0.1.6.20
+* Fixed memory leak after convolution55.
+* Changed ProcessSRCNN() method to get convolutional gray.
+
+## Previous Changes
+### Version 0.1.4.17
+* Bug fixed for color space conversion.
 ### Verison 0.1.5.18
 * Supports variable filters for interpolation.
     1. Nearest
@@ -41,10 +48,6 @@ This is an open source project from original of this:
     1. Bicubic
     1. Lanczos-3
     1. B-Spline
-
-## Previous Changes
-### Version 0.1.4.17
-* Bug fixed for color space conversion.
 
 ## License
 * Follows original source GPLv2, but this project is LGPLv3.
