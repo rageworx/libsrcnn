@@ -651,7 +651,7 @@ int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff,
     // ---------------------------------------------------------
 	// Copy Third layer result to Y channel.
 	
-	unsigned convsz = imgResized[0].width * imgResized[0].height;
+	unsigned convsz = imgResized[0].width * imgResized[0].height * sizeof( float );
 	memcpy( imgResized[0].buff, imgConv3.buff, convsz );
 	
     /* Convert the image from YCrCb to RGB Space */

@@ -34,12 +34,14 @@ This is an open source project from original of this:
 * MacOSX ( clang, llvm )
 
 ## Latest Changes
+### Verison 0.1.6.23
+* Fixed a small bug of wrong internal copying size.
+
+## Previous Changes
 ### Verison 0.1.6.22
 * Fixed bug of original source (ShuWang's SRCNN).
    - Use last layer (3) to Y channel at last construction.
 * Changed ProcessSRCNN() method to get optional convolutional result.
-
-## Previous Changes
 ### Verison 0.1.6.20
 * Fixed memory leak after convolution55.
 * Changed ProcessSRCNN() method to get convolutional gray.
