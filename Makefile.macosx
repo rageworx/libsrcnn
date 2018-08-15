@@ -16,12 +16,13 @@ SRCS  = $(SRC_PATH)/frawscale.cpp
 SRCS += $(SRC_PATH)/libsrcnn.cpp
 OBJS  = $(SRCS:$(SRC_PATH)/%.cpp=$(OBJ_PATH)/%.o)
 
-CFLAGS  = -mtune=native -fopenmp -ffast-math
+CFLAGS  = -mtune=native -ffast-math
 CFLAGS += -I$(SRC_PATH)
 CFLAGS += -DBUILDING_DLL
+CFLAGS += -DNO_OMP
 
 LFLAGS  = -O2
-LFLAGS += -fopenmp
+LFLAGS += 
 
 all: prepare $(BIN_PATH)/$(TARGET)
 
