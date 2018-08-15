@@ -1,0 +1,42 @@
+# Makefile for libsrcnn static build for Linux
+# by Raphael Kim
+
+CPP = llvm-gcc
+CXX = llvm-g++
+AR  = ar
+
+SRC_PATH = src
+OBJ_PATH = obj
+BIN_PATH = lib
+TARGET   = libsrcnn.a
+
+SRCS  = $(SRC_PATH)/frawscale.cpp
+SRCS += $(SRC_PATH)/libsrcnn.cpp
+OBJS  = $(SRCS:$(SRC_PATH)/%.cpp=$(OBJ_PATH)/%.o)
+
+CFLAGS  = -mtune=native -ffast-math
+CFLAGS += -I$(SRC_PATH)
+CFLAGS += -DLIBSRCNNSTATIC
+CFLAGS += -DNO_OMP
+
+LFLAGS  = -O2
+FLAGS  += -static
+
+all: prepare $(BIN_PATH)/$(TARGET)
+
+prepare:
+	@mkdir -p $(OBJ_PATH)
+	@mkdir -p $(BIN_PATH)
+
+clean:
+	@rm -rf $(OBJ_PATH)/*.o
+	@rm -rf $(BIN_PATH)/$(TARGET)
+
+$(OBJS): $(OBJ_PATH)/%.o: $(SRC_PATH)/%.cpp
+	@echo "Compiling $< ..."
+	@$(CXX) $(CFLAGS) $(LFLAGS) -c $< -o $@
+
+$(BIN_PATH)/$(TARGET): $(OBJS)
+	@echo "Linking $@ ..."
+	@$(AR) -q $@ $(OBJ_PATH)/*.o
+	@cp -rf $(SRC_PATH)/libsrcnn.h $(BIN_PATH)

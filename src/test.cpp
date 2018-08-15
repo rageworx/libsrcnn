@@ -5,7 +5,9 @@
 #endif
 
 #include <unistd.h>
+#ifndef NO_OMP
 #include <omp.h>
+#endif
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
