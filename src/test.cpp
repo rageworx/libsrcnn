@@ -542,12 +542,12 @@ void printUsage()
     printf( "  options:\n" );
     printf( "      --scale=(ratio : 0.0<999...) : adjust size of output image.\n" );
     printf( "      --waitakey                   : wait for ENTER for end of job.\n" );
-    printf( "      --filter=(0~4)               : Changes interpolation filter as ...\n" );
-    printf( "               0 = Nearest filter\n" );
-    printf( "               1 = Bilinear filter\n" );
-    printf( "               2 = Bicubic filter (default)\n" );
-    printf( "               3 = Lanzcos-3 filter\n" );
-    printf( "               4 = B-Spline filter\n" );
+    printf( "      --filter=(0...4)             : Changes interpolation filter as ...\n" );
+    printf( "                   0 = Nearest filter\n" );
+    printf( "                   1 = Bilinear filter\n" );
+    printf( "                   2 = Bicubic filter (default)\n" );
+    printf( "                   3 = Lanzcos-3 filter\n" );
+    printf( "                   4 = B-Spline filter\n" );
     printf( "\n" ); 
 }
 
