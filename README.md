@@ -63,3 +63,6 @@ This is an open source project from original of this:
 
 ## How to build ?
 * build with ```make -f Makefile.{your platform}```.
+
+## Dependency
+* [FLTK-1.3.4-2-ts](https://github.com/rageworx/fltk-1.3.4-2-ts) and [fl_imgtk](https://github.com/rageworx/fl_imgtk) for build test program for read and write image files.
