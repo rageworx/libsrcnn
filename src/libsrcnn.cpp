@@ -772,10 +772,10 @@ int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff,
 
             if ( cnt + 1 == repeat )
             {
-                if ( lf > 0.f )
-                {
-                    curmf = ( (float)w * multiply ) / (float)sw;
-                }
+                curmf = ( (float)w * multiply ) / (float)sw;
+
+                if ( ( curmf == 0.f ) || ( curmf == 1.0f ) )
+                    break;
             }
            
             obuffsz = sw * sh * d;
