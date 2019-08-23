@@ -410,6 +410,7 @@ bool parseArgs( int argc, char** argv )
                     }
                 }
             }
+            else
             if ( strtmp.find( "--step" ) == 0 )
             {
                 stepscale = true;
