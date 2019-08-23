@@ -34,11 +34,13 @@ This is an open source project from original of this:
 * MacOSX ( clang, llvm )
 
 ## Latest Changes
+### Verison 0.1.8.30
+* Precision step scaling bug fixed.
+
+## Previous Changes
 ### Verison 0.1.8.28
 * Precision step scaling option availed.
 * included option by reason of libsrcnn trained for maximum double multiply.
-
-## Previous Changes
 ### Verison 0.1.6.23
 * Fixed a small bug of wrong internal copying size.
 ### Verison 0.1.6.22
