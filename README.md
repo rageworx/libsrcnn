@@ -34,10 +34,13 @@ This is an open source project from original of this:
 * MacOSX ( clang, llvm )
 
 ## Latest Changes
-### Verison 0.1.6.23
-* Fixed a small bug of wrong internal copying size.
+### Verison 0.1.8.28
+* Precision step scaling option availed.
+* included option by reason of libsrcnn trained for maximum double multiply.
 
 ## Previous Changes
+### Verison 0.1.6.23
+* Fixed a small bug of wrong internal copying size.
 ### Verison 0.1.6.22
 * Fixed bug of original source (ShuWang's SRCNN).
    - Use last layer (3) to Y channel at last construction.
