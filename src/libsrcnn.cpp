@@ -14,11 +14,15 @@
 ** - 2018-08-09 -
 **     Enhanced & Fixed codes to best performance for OpenMP.
 **
+** - 2019-08-23 -
+**     Recursive calling by factor 2.0 when over scaling.
+**
 *******************************************************************************/
 ////////////////////////////////////////////////////////////////////////////////
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <cmath>
 #include <string>
 
 #ifndef NO_OMP
@@ -74,9 +78,8 @@ typedef ImgF32  ImgConv2Layers[CONV2_FILTERS];
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static bool             opt_cubicfilter = true;
+static bool             intp_stepscale  = false;
 static SRCNNFilterType  intp_filter     = SRCNNF_Bicubic;
-
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -465,37 +468,14 @@ void convolution55( ImgConv2Layers &src, ImgF32 &dst, const ConvKernel32_55 kern
     discardConvLayers( &src2[0], CONV2_FILTERS );   
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
-}; /// of namespace libsrcnn
-
-////////////////////////////////////////////////////////////////////////////////
-
-void DLL_PUBLIC ConfigureFilterSRCNN( SRCNNFilterType ftype )
+int doSRCNN( const unsigned char* refbuff, 
+             unsigned w, unsigned h, unsigned d,
+             float muliply,
+             unsigned char* &outbuff,
+             unsigned &outbuffsz,
+             unsigned char** convbuff,
+             unsigned* convbuffsz )
 {
-    if ( libsrcnn::intp_filter != ftype )
-    {
-        libsrcnn::intp_filter = ftype;
-    }
-}
-
-int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff, 
-                             unsigned w, unsigned h, unsigned d,
-                             float muliply,
-                             unsigned char* &outbuff,
-                             unsigned &outbuffsz,
-                             unsigned char** convbuff,
-                             unsigned* convbuffsz )
-{
-    if ( ( refbuff == NULL ) || ( w == 0 ) || ( h == 0 ) || ( d == 0 ) )
-        return -1;
-    
-    if ( ( ( (float)w * muliply ) <= 0.f ) ||
-         ( ( (float)h * muliply ) <= 0.f ) )
-    {
-        return -2;
-    }
-
     int retval = -100;
     
     // -------------------------------------------------------------
@@ -716,5 +696,139 @@ int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff,
     }
     
     return retval;
+}
+////////////////////////////////////////////////////////////////////////////////
 
+}; /// of namespace libsrcnn
+
+////////////////////////////////////////////////////////////////////////////////
+
+void DLL_PUBLIC ConfigureFilterSRCNN( SRCNNFilterType ftype, bool stepscale )
+{
+    if ( libsrcnn::intp_filter != ftype )
+    {
+        libsrcnn::intp_filter = ftype;
+    }
+
+    if ( libsrcnn::intp_stepscale != stepscale )
+    {
+        libsrcnn::intp_stepscale = stepscale;
+    }
+}
+
+int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff, 
+                             unsigned w, unsigned h, unsigned d,
+                             float multiply,
+                             unsigned char* &outbuff,
+                             unsigned &outbuffsz,
+                             unsigned char** convbuff,
+                             unsigned* convbuffsz )
+{
+    if ( ( refbuff == NULL ) || ( w == 0 ) || ( h == 0 ) || ( d == 0 ) )
+        return -1;
+   
+    float m_w = (float)w * multiply;
+    float m_h = (float)h * multiply;
+
+    if ( ( m_w <= 0.f ) || ( m_h <= 0.f ) )
+    {
+        return -2;
+    }
+
+    int retval = -100;
+
+    if ( libsrcnn::intp_stepscale == false )
+    {
+        retval = libsrcnn::doSRCNN( refbuff,
+                                    w, h, d,
+                                    multiply,
+                                    outbuff,
+                                    outbuffsz,
+                                    convbuff,
+                                    convbuffsz );
+    }
+    else
+    {
+        // Calc multiply by factor 2.0...
+        float lf   = fmodf( multiply, 2.f );
+        int repeat = (int)(multiply / 2.f);
+     
+        const unsigned char* rbuff = refbuff;
+        unsigned char* obuff = NULL;
+        unsigned obuffsz = 0;
+        unsigned char** cbuff = NULL;
+        unsigned* cbuffsz = NULL;
+        unsigned sw = w;
+        unsigned sh = h;
+
+        if ( lf > 0.f )
+        {
+            repeat++;
+        }
+
+        for( int cnt=0; cnt<repeat; cnt++ )
+        {
+            float curmf = 2.0f;
+
+            if ( cnt + 1 == repeat )
+            {
+                if ( lf > 0.f )
+                {
+                    curmf = ( (float)w * multiply ) / (float)sw;
+                }
+            }
+           
+            obuffsz = sw * sh * d;
+
+            if ( cnt > 0 )
+            {
+                if ( cnt > 1 )
+                {
+                    if ( rbuff != NULL )
+                        delete[] rbuff;
+                }
+
+                rbuff = obuff;
+                obuff = NULL;
+            }
+
+            if ( cnt + 1 == repeat )
+            {
+                cbuff   = convbuff;
+                cbuffsz = convbuffsz;
+            }
+
+            retval = libsrcnn::doSRCNN( rbuff,
+                                        sw, sh, d,
+                                        curmf,
+                                        obuff,
+                                        obuffsz,
+                                        cbuff,
+                                        cbuffsz );
+
+            if ( retval != 0 )
+            {
+                delete[] rbuff;
+                rbuff = NULL;
+                break;
+            }
+            
+            if ( repeat > 1 )
+            {
+                sw *= curmf;
+                sh *= curmf;
+            }
+        }
+
+        if ( ( repeat > 1 ) && ( rbuff != NULL ) )
+        {
+            delete[] rbuff;
+        }
+
+        outbuff = obuff;
+        outbuffsz = obuffsz;
+        convbuff = cbuff;
+    }
+   
+    return retval;
 }

@@ -361,6 +361,7 @@ bool savetocolorpng( Fl_RGB_Image* imgcached, const char* fpath )
 ////////////////////////////////////////////////////////////////////////////////
 
 static float    image_multiply  = 2.0f;
+static bool     stepscale = false;
 static bool     waitforakey = false;
 static string   path_me;
 static string   file_me;
@@ -408,6 +409,10 @@ bool parseArgs( int argc, char** argv )
                         image_multiply = tmpfv;
                     }
                 }
+            }
+            if ( strtmp.find( "--step" ) == 0 )
+            {
+                stepscale = true;
             }
             else
             if ( strtmp.find( "--filter=" ) == 0 )
@@ -526,10 +531,10 @@ bool parseArgs( int argc, char** argv )
 
 void printAbout()
 {
-    printf( "%s : libsrcnn testing program with FLTK-1.3.4-1-ts, ver %s\n", 
+    printf( "%s : libsrcnn testing program with FLTK-1.3.5-1-ts, ver %s\n", 
             file_me.c_str(),
             APP_VERSION_STR );
-    printf( "(C)Copyrighted ~2018 Raphael Kim\n\n" );
+    printf( "(C)Copyrighted ~2019 Raphael Kim\n\n" );
     fflush( stdout );   
 }
 
@@ -541,6 +546,8 @@ void printUsage()
     printf( "\n" );
     printf( "  options:\n" );
     printf( "      --scale=(ratio : 0.0<999...) : adjust size of output image.\n" );
+    printf( "      --step                       : scaling by fator 2 steps.\n" );
+    printf( "                                     * step scaling takes a lot of times.\n" );
     printf( "      --waitakey                   : wait for ENTER for end of job.\n" );
     printf( "      --filter=(0...4)             : Changes interpolation filter as ...\n" );
     printf( "                   0 = Nearest filter\n" );
@@ -636,6 +643,10 @@ int main( int argc, char** argv )
             unsigned     convsz   = 0;
             
             printf( "- Scaling ratio : %.2f\n", image_multiply );
+            if ( stepscaling == true )
+            {
+                printf( "- Step scaling enabled, warning: takes a lot of times.\n" );
+            }
             printf( "- Filter : ");
             switch( filter_type )
             {
@@ -660,7 +671,7 @@ int main( int argc, char** argv )
                     break;
             }
             
-            ConfigureFilterSRCNN( filter_type );
+            ConfigureFilterSRCNN( filter_type, stepscale );
             fflush( stdout );
             
             printf( "- Processing SRCNN ... " );

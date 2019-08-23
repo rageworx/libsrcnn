@@ -12,6 +12,9 @@ SO_EXT   = .so
 LIB_EXT  = .a
 TARGET   = libsrcnn$(SO_EXT)
 
+INST_L_PATH = /usr/local/lib
+INST_H_PATH = /usr/local/include
+
 SRCS  = $(SRC_PATH)/frawscale.cpp
 SRCS += $(SRC_PATH)/libsrcnn.cpp
 OBJS  = $(SRCS:$(SRC_PATH)/%.cpp=$(OBJ_PATH)/%.o)
@@ -44,3 +47,15 @@ $(BIN_PATH)/$(TARGET): $(OBJS)
 	@echo "Linking $@ ..."
 	@$(CXX) -shared $(OBJ_PATH)/*.o $(CFLAGS) $(LFLAGS) -o $@
 	@cp -rf $(SRC_PATH)/libsrcnn.h $(BIN_PATH)
+
+install: $(BIN_PATH)/$(TARGET)
+	@echo "Installing ..."
+	@cp -rf $< $(INST_L_PATH)
+	@cp -rf $(SRC_PATH)/libsrcnn.h $(INST_H_PATH)
+	@ldconfig
+
+uninstall: $(INST_L_PATH)/$(TARGET)
+	@echo "Uninstalling ..."
+	@rm -rf $<
+	@rm -rf $(INST_H_PATH)/libsrcnn.h
+	@ldconfig
