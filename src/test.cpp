@@ -643,7 +643,7 @@ int main( int argc, char** argv )
             unsigned     convsz   = 0;
             
             printf( "- Scaling ratio : %.2f\n", image_multiply );
-            if ( stepscaling == true )
+            if ( stepscale == true )
             {
                 printf( "- Step scaling enabled, warning: takes a lot of times.\n" );
             }
