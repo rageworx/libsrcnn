@@ -15,7 +15,7 @@
 **     Enhanced & Fixed codes to best performance for OpenMP.
 **
 ** - 2019-08-23 -
-**     Recursive calling by factor 2.0 when over scaling.
+**     Recursive calling option by factor 2.0 when over scaling.
 **
 *******************************************************************************/
 ////////////////////////////////////////////////////////////////////////////////
@@ -363,7 +363,6 @@ void convolution99( ImgF32 &src, ImgF32 &dst, const KernelMat99 kernel, float bi
 
 void convolution11( ImgConv1Layers &src, ImgF32 &dst, const ConvKernel1 kernel, float bias )
 {
-    //#pragma omp parallel for
     for ( unsigned row=0; row<dst.height; row++ )
     {
         for ( unsigned col=0; col<dst.width; col++ )
@@ -373,7 +372,8 @@ void convolution11( ImgConv1Layers &src, ImgF32 &dst, const ConvKernel1 kernel, 
 
             for ( unsigned fc=0; fc<CONV1_FILTERS; fc++ )
             {
-                temp += src[fc].buff[ row * src[fc].width + col ] * kernel[fc];                     
+                temp += src[fc].buff[ row * src[fc].width + col ] 
+                        * kernel[fc];
             }
             
             temp += bias;
