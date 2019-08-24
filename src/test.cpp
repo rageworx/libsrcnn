@@ -530,12 +530,63 @@ bool parseArgs( int argc, char** argv )
     return false;
 }
 
+const char* getPlatform()
+{
+    static char retstr[32] = {0};
+#if defined(__WIN64)
+    sprintf( retstr, "Windows64" );
+#elif defined(__WIN32)
+    sprintf( retstr, "Windows32" );
+#elif defined(__APPLE__)
+    sprintf( retstr, "MacOSX" );
+#elif defined(__linux__)
+    sprintf( retstr, "Linux" );
+#else
+    sprintF( retstr, "unknown platform" );
+#endif
+    return retstr;
+}
+
+const char* getCompilerVersion()
+{
+    static char retstr[64] = {0};
+#if defined(__MINGW64__)
+    sprintf( retstr, 
+             "MinGW-W64-%d.%d(%d.%d.%d)",
+             __MINGW64_VERSION_MAJOR,
+             __MINGW64_VERSION_MINOR,
+             __GNUC__,
+             __GNUC_MINOR__,
+             __GNUC_PATCHLEVEL__ );
+#elif defined(__MINGW32__)
+    sprintf( retstr, 
+             "MinGW-W32-%d.%d(%d.%d.%d)",
+             __MINGW32_MAJOR_VERSION,
+             __MINGW32_MINOR_VERSION, 
+             __GNUC__,
+             __GNUC_MINOR__,
+             __GNUC_PATCHLEVEL__ );
+#elif defined(__GNUC__)
+    sprintf( retstr, 
+             "GNU-GCC-%d.%d.%d",
+             __GNUC__,
+             __GNUC_MINOR__,
+             __GNUC_PATCHLEVEL__ );
+#else
+    strcat( retstr, "unknown comiler" );
+#endif
+
+    return retstr;
+}
+
 void printAbout()
 {
     printf( "%s : libsrcnn testing program with FLTK-1.3.5-1-ts, ver %s\n", 
             file_me.c_str(),
             APP_VERSION_STR );
-    printf( "(C)Copyrighted ~2019 Raphael Kim\n\n" );
+    printf( "(C)Copyrighted ~2019 Raphael Kim | " );
+    printf( "build for %s, %s\n", getPlatform(), getCompilerVersion() );
+    printf( "\n");
     fflush( stdout );   
 }
 
