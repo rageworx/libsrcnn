@@ -200,6 +200,10 @@ void initImgYCbCr( ImgYCbCr &img, unsigned w, unsigned h, unsigned d )
         img.uA = true;
         initImgF32( img.A, w, h );
     }
+    else
+    {
+        memset( &img.A, 0, sizeof( ImgF32 ) );
+    }
 }
 
 void converImgU8toYCbCr( ImgU8 &src, ImgYCbCr &out )

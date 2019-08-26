@@ -31,8 +31,8 @@
 #endif
 #endif /// of LIBSRCNNSTATIC
 
-// libsrcnn version means,  0.1.9.34
-#define LIBSRCNN_VERSION    0x0001081E
+// libsrcnn version means,  0.1.9.35
+#define LIBSRCNN_VERSION    0x00010923
 
 typedef enum DLL_PUBLIC
 {
