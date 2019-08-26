@@ -17,6 +17,10 @@
 ** - 2019-08-23 -
 **     Recursive calling option by factor 2.0 when over scaling.
 **
+** - 2019-08-26 -
+**     Fixed color channels don't use bicubic filter.
+**     Now supporting alpha channel.
+**
 *******************************************************************************/
 ////////////////////////////////////////////////////////////////////////////////
 #include <cstdio>
@@ -71,6 +75,8 @@ typedef struct
     ImgF32      Y;
     ImgF32      Cb;
     ImgF32      Cr;
+    bool        uA;
+    ImgF32      A;
 }ImgYCbCr;
 
 typedef ImgF32  ImgConv1Layers[CONV1_FILTERS];
@@ -176,24 +182,35 @@ void discardImgYCbCr( ImgYCbCr &img )
     resetImgF32( img.Y );
     resetImgF32( img.Cb );
     resetImgF32( img.Cr );
+
+    if ( img.uA == true )
+    {
+        resetImgF32( img.A );
+    }
 }
 
-void initImgYCbCr( ImgYCbCr &img, unsigned w, unsigned h )
+void initImgYCbCr( ImgYCbCr &img, unsigned w, unsigned h, unsigned d )
 {
     initImgF32( img.Y, w, h );
     initImgF32( img.Cb, w, h );
     initImgF32( img.Cr, w, h );
+
+    if ( d == 4 )
+    {
+        img.uA = true;
+        initImgF32( img.A, w, h );
+    }
 }
 
 void converImgU8toYCbCr( ImgU8 &src, ImgYCbCr &out )
 {
     if ( src.depth < 3 )
         return;
-    
-    initImgYCbCr( out, src.width, src.height );
+
+    initImgYCbCr( out, src.width, src.height, src.depth );
     
     unsigned imgsz = src.width * src.height;
-    
+
     #pragma omp parallel for
     for( unsigned cnt=0; cnt<imgsz; cnt++ )
     {
@@ -217,21 +234,26 @@ void converImgU8toYCbCr( ImgU8 &src, ImgYCbCr &out )
                            ( 0.5f * fR ) - 
                            ( 0.4187f * fG ) - 
                            ( 0.0813f * fB );
-                       
+
+        if ( ( src.depth == 4 ) && ( out.uA == true ) )
+        {
+            // Alpha
+            out.A.buff[cnt] = (float)src.buff[ ( cnt * src.depth ) + 3 ];
+        }
     }
 }
 
-void convertImgF32x3toImgU8( ImgF32* src, ImgU8 &out )
+void convertImgF32XtoImgU8( ImgF32* src, unsigned d, ImgU8 &out )
 {
     if ( src == NULL )
         return;
-    
+
     unsigned imgsz = src[0].width * src[0].height;
 
     out.width  = src[0].width;
     out.height = src[0].height;
-    out.depth  = 3;
-    out.buff   = new unsigned char[ imgsz * 3 ];        
+    out.depth  = d;
+    out.buff   = new unsigned char[ imgsz * d ];
         
     #pragma omp parallel for
     for( unsigned cnt=0; cnt<imgsz; cnt++ )
@@ -245,13 +267,19 @@ void convertImgF32x3toImgU8( ImgF32* src, ImgU8 &out )
         float fB  = MIN(255.f, fY + 113.f * fCb / 64.f );
 
         // Red -> Green -> Blue ...
-        out.buff[( cnt * 3 ) + 0] = (unsigned char)MAX( 0.f, fR );
-        out.buff[( cnt * 3 ) + 1] = (unsigned char)MAX( 0.f, fG );
-        out.buff[( cnt * 3 ) + 2] = (unsigned char)MAX( 0.f, fB );
+        out.buff[( cnt * d ) + 0] = (unsigned char)MAX( 0.f, fR );
+        out.buff[( cnt * d ) + 1] = (unsigned char)MAX( 0.f, fG );
+        out.buff[( cnt * d ) + 2] = (unsigned char)MAX( 0.f, fB );
+
+        if ( d == 4 )
+        {
+            float fA = MIN(255.f, src[3].buff[cnt]);
+            out.buff[( cnt * d ) + 3] = (unsigned char)MAX( 0.f, fA );
+        }
     }
 }
 
-void convertYCbCrtoImgU8( ImgYCbCr &src, ImgU8* &out )
+void convertYCbCrtoImgU8( ImgYCbCr &src, unsigned d, ImgU8* &out )
 {
     out = new ImgU8;
     
@@ -262,8 +290,8 @@ void convertYCbCrtoImgU8( ImgYCbCr &src, ImgU8* &out )
 
     out->width  = src.Y.width;
     out->height = src.Y.height;
-    out->depth  = 3;
-    out->buff   = new unsigned char[ imgsz * 3 ];
+    out->depth  = d;
+    out->buff   = new unsigned char[ imgsz * d ];
     
     if ( out->buff == NULL )
         return;
@@ -276,12 +304,16 @@ void convertYCbCrtoImgU8( ImgYCbCr &src, ImgU8* &out )
         float fCr = src.Cr.buff[cnt];
 
         // Red -> Green -> Blue ...
-        out->buff[( cnt * 3 ) + 0] = \
+        out->buff[( cnt * d ) + 0] = \
                 (unsigned char)(fY + ( 1.402f * fCr ));
-        out->buff[( cnt * 3 ) + 1] = \
+        out->buff[( cnt * d ) + 1] = \
                 (unsigned char)(fY - ( 0.34414f * fCb ) - ( 0.71414 * fCr ));
-        out->buff[( cnt * 3 ) + 2] = \
+        out->buff[( cnt * d ) + 2] = \
                 (unsigned char)(fY + ( 1.772 * fCb ));
+        if ( d == 4 )
+        {
+            out->buff[( cnt * d ) +3] = src.A.buff[cnt];
+        }
     }
 }
 
@@ -480,7 +512,7 @@ int doSRCNN( const unsigned char* refbuff,
     
     // -------------------------------------------------------------
     // Convert RGB to Y-Cb-Cr
-    
+    //
     // warning: imgSrc is referenced, don't remove from memory !
     libsrcnn::ImgU8     imgSrc = { w ,h ,d, (unsigned char*)refbuff };
     libsrcnn::ImgYCbCr  imgYCbCr;
@@ -491,17 +523,22 @@ int doSRCNN( const unsigned char* refbuff,
     saveImgYCbCr( &imgYCbCr, "debugimg" );
 #endif
     
-    /* Resize the Y-Cr-Cb Channel with Bicubic Interpolation */
-    libsrcnn::ImgF32 imgResized[3];
-    const float* refimgbuf[3] = { imgYCbCr.Y.buff, 
+    /* --
+     * Resize the Y Channel with Bicubic Interpolation,
+     * Other layers just doing linear interpolation.
+     */
+
+    libsrcnn::ImgF32 imgResized[4];
+    const float* refimgbuf[4] = { imgYCbCr.Y.buff, 
                                   imgYCbCr.Cb.buff, 
-                                  imgYCbCr.Cr.buff };
+                                  imgYCbCr.Cr.buff,
+                                  imgYCbCr.A.buff };
     
     unsigned rs_w = imgYCbCr.Y.width  * muliply;
     unsigned rs_h = imgYCbCr.Y.height * muliply;
-        
+
     #pragma omp parallel for
-    for ( unsigned cnt=0; cnt<3; cnt++ )
+    for ( unsigned cnt=0; cnt<d; cnt++ )
     {
         imgResized[cnt].width  = rs_w;
         imgResized[cnt].height = rs_h;
@@ -509,39 +546,56 @@ int doSRCNN( const unsigned char* refbuff,
         imgResized[cnt].buff   = NULL;
 
         FRAWGenericFilter* rszfilter;
-        
-        switch( libsrcnn::intp_filter )
+    
+        if ( cnt == 0 )
         {
-            default:
-            case SRCNNF_Nearest:
-                rszfilter = new FRAWBoxFilter;
-                break;
-                
-            case SRCNNF_Bilinear:
-                rszfilter = new FRAWBilinearFilter;
-                break;
-                
-            case SRCNNF_Bicubic:
-                rszfilter = new FRAWBicubicFilter;
-                break;
-                
-            case SRCNNF_Lanczos3:
-                rszfilter = new FRAWLanczos3Filter;
-                break;
-                
-            case SRCNNF_Bspline:
-                rszfilter = new FRAWBSplineFilter;
-                break;
+            switch( libsrcnn::intp_filter )
+            {
+                default:
+                case SRCNNF_Nearest:
+                    rszfilter = new FRAWBoxFilter;
+                    break;
+                    
+                case SRCNNF_Bilinear:
+                    rszfilter = new FRAWBilinearFilter;
+                    break;
+                    
+                case SRCNNF_Bicubic:
+                    rszfilter = new FRAWBicubicFilter;
+                    break;
+                    
+                case SRCNNF_Lanczos3:
+                    rszfilter = new FRAWLanczos3Filter;
+                    break;
+                    
+                case SRCNNF_Bspline:
+                    rszfilter = new FRAWBSplineFilter;
+                    break;
+            }
         }
-        
-        FRAWResizeEngine  szf( rszfilter );
+        else
+        {
+            switch( libsrcnn::intp_filter )
+            {
+                case SRCNNF_Nearest:
+                    rszfilter = new FRAWBoxFilter;
+                    break;
+                    
+                default:
+                case SRCNNF_Bilinear:
+                    rszfilter = new FRAWBilinearFilter;
+                    break;
+            }
+        }
+     
+        FRAWResizeEngine rsze( rszfilter );
             
-        szf.scale( refimgbuf[cnt], 
-                   imgYCbCr.Y.width,
-                   imgYCbCr.Y.height,
-                   rs_w,
-                   rs_h,
-                   &imgResized[cnt].buff );
+        rsze.scale( refimgbuf[cnt], 
+                    imgYCbCr.Y.width,
+                    imgYCbCr.Y.height,
+                    rs_w,
+                    rs_h,
+                    &imgResized[cnt].buff );
                    
         delete rszfilter;
     }
@@ -556,6 +610,11 @@ int doSRCNN( const unsigned char* refbuff,
     saveImgF32( &imgResized[1], "resized_Cb.png" );
     printf("rCr:");
     saveImgF32( &imgResized[2], "resized_Cr.png" );
+    if ( d == 4 )
+    {
+        printf("rA:");
+        saveImgF32( &imgResized[3], "resized_A.png" );
+    }
 #endif
     
     /******************* The First Layer *******************/
@@ -631,15 +690,16 @@ int doSRCNN( const unsigned char* refbuff,
     // ---------------------------------------------------------
 	// Copy Third layer result to Y channel.
 	
-	unsigned convsz = imgResized[0].width * imgResized[0].height * sizeof( float );
+	unsigned convsz = imgResized[0].width \
+                      * imgResized[0].height * sizeof( float );
 	memcpy( imgResized[0].buff, imgConv3.buff, convsz );
 	
     /* Convert the image from YCrCb to RGB Space */
     libsrcnn::ImgU8 imgRGB;
-    libsrcnn::convertImgF32x3toImgU8( imgResized, imgRGB );
+    libsrcnn::convertImgF32XtoImgU8( imgResized, d, imgRGB );
     
     // discard used image of Resized Y-Cr-Cb.
-    libsrcnn::discardConvLayers( imgResized, 3 );
+    libsrcnn::discardConvLayers( imgResized, d );
     
     // discard used buffers ..
     libsrcnn::discardConvLayers( &imgConv1[0], CONV1_FILTERS );
@@ -726,7 +786,13 @@ int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff,
 {
     if ( ( refbuff == NULL ) || ( w == 0 ) || ( h == 0 ) || ( d == 0 ) )
         return -1;
-   
+
+#ifdef DEBUG
+    printf( "ProcessSRCNN( w=%u, h=%d, d=%u, m=%f\n",
+            w, h ,d, multiply );
+    fflush( stdout );
+#endif
+  
     float m_w = (float)w * multiply;
     float m_h = (float)h * multiply;
 

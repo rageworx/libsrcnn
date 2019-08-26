@@ -103,31 +103,6 @@ bool convImage( Fl_RGB_Image* src, Fl_RGB_Image* &dst )
                 }
                 break;
                 
-            case 4: /// removing alpha ...
-                {
-                    const unsigned short* pdata = (const unsigned short*)src->data()[0];
-                    cdata = new uchar[ imgsz * 3 ];
-                    if ( cdata != NULL )
-                    {
-                        #pragma omp parallel for
-                        for( unsigned cnt=0; cnt<imgsz; cnt++ )
-                        {
-                            float alp = (float)( pdata[ cnt * 4 + 3 ] ) / 255.f;
-                            cdata[ cnt*3 + 0 ] = pdata[ cnt * 4 + 0 ] * alp;
-                            cdata[ cnt*3 + 1 ] = pdata[ cnt * 4 + 1 ] * alp;
-                            cdata[ cnt*3 + 2 ] = pdata[ cnt * 4 + 2 ] * alp;
-                        }
-
-                        dst = new Fl_RGB_Image( cdata, img_w, img_h, 3 );
-
-                        if ( dst != NULL )
-                        {
-                            return true;
-                        }
-                    }
-                }
-                break;          
-
             default:
                 {
                     dst = (Fl_RGB_Image*)src->copy();
@@ -304,7 +279,13 @@ bool savetocolorpng( Fl_RGB_Image* imgcached, const char* fpath )
             {
                 int mx = imgcached->w();
                 int my = imgcached->h();
-                int pd = 3;
+                int pd = imgcached->d();
+
+                int ct = PNG_COLOR_TYPE_RGB;
+                if ( pd == 4 )
+                {
+                    ct = PNG_COLOR_TYPE_RGBA;
+                }
 
                 png_init_io( png_ptr, fp );
                 png_set_IHDR( png_ptr,
@@ -312,14 +293,14 @@ bool savetocolorpng( Fl_RGB_Image* imgcached, const char* fpath )
                               mx,
                               my,
                               8,
-                              PNG_COLOR_TYPE_RGB,
+                              ct,
                               PNG_INTERLACE_NONE,
                               PNG_COMPRESSION_TYPE_BASE,
                               PNG_FILTER_TYPE_BASE);
 
                 png_write_info( png_ptr, info_ptr );
 
-                row = (png_bytep)malloc( imgcached->w() * sizeof( png_byte ) * 3 );
+                row = (png_bytep)malloc( imgcached->w() * sizeof( png_byte ) * pd );
                 if ( row != NULL )
                 {
                     const char* buf = imgcached->data()[0];
@@ -329,9 +310,11 @@ bool savetocolorpng( Fl_RGB_Image* imgcached, const char* fpath )
                     {
                         for( int x=0; x<mx; x++ )
                         {
-                            row[ (x*3) + 0 ] = buf[ bque + 0 ];
-                            row[ (x*3) + 1 ] = buf[ bque + 1 ];
-                            row[ (x*3) + 2 ] = buf[ bque + 2 ];
+                            for( int dd=0; dd<pd; dd++ )
+                            {
+                                row[ (x*pd) + dd ] = buf[ bque + dd ];
+                            }
+
                             bque += pd;
                         }
 
@@ -683,7 +666,8 @@ int main( int argc, char** argv )
         
         delete imgTest;
         
-        if ( ( imgRGB->w() > 0 ) && ( imgRGB->h() > 0 ) && ( imgRGB->d() >= 3 ) )
+        if ( ( imgRGB->w() > 0 ) && ( imgRGB->h() > 0 ) 
+             && ( imgRGB->d() >= 3 ) )
         {
             const uchar* refbuff = (const uchar*)imgRGB->data()[0];
             unsigned     ref_w   = imgRGB->w();
@@ -750,7 +734,7 @@ int main( int argc, char** argv )
                 
                 printf( "Test Ok, took %u ms.\n", tick1 - tick0 );
             
-                Fl_RGB_Image* imgDump = new Fl_RGB_Image( outbuff, new_w, new_h, 3 );
+                Fl_RGB_Image* imgDump = new Fl_RGB_Image( outbuff, new_w, new_h, ref_d );
                 if ( imgDump != NULL )
                 {
                     printf( "- Saving rezied result to %s ... ", file_dst.c_str() );

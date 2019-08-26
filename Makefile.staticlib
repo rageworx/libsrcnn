@@ -17,9 +17,11 @@ OBJS  = $(SRCS:$(SRC_PATH)/%.cpp=$(OBJ_PATH)/%.o)
 CFLAGS  = -mtune=native -fopenmp -ffast-math
 CFLAGS += -I$(SRC_PATH)
 CFLAGS += -DLIBSRCNNSTATIC
+#CFLAGS += -DDEBUG
 
 LFLAGS  = -O2
-FLAGS  += -static
+#LFLAGS  += -g
+LFLAGS  += -static
 
 all: prepare $(BIN_PATH)/$(TARGET)
 

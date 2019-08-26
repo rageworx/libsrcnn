@@ -34,10 +34,13 @@ This is an open source project from original of this:
 * MacOSX ( clang, llvm )
 
 ## Latest Changes
-### Verison 0.1.8.30
-* Precision step scaling bug fixed.
+### Verison 0.1.9.34
+* Fixed don't use color space scaling with bicubic filter.
+* Now supporting alpha channel.
 
 ## Previous Changes
+### Verison 0.1.8.30
+* Precision step scaling bug fixed.
 ### Verison 0.1.8.28
 * Precision step scaling option availed.
 * included option by reason of libsrcnn trained for maximum double multiply.
