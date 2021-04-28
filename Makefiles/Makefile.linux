@@ -4,13 +4,15 @@
 CPP = gcc
 CXX = g++
 AR  = ar
+RL  = ranlib
 
 SRC_PATH = src
 OBJ_PATH = obj
 BIN_PATH = lib
 SO_EXT   = .so
 LIB_EXT  = .a
-TARGET   = libsrcnn$(SO_EXT)
+LIB_NM   = libsrcnn
+TARGET   = $(LIB_NM)$(SO_EXT)
 
 INST_L_PATH = /usr/local/lib
 INST_H_PATH = /usr/local/include
@@ -21,15 +23,15 @@ OBJS  = $(SRCS:$(SRC_PATH)/%.cpp=$(OBJ_PATH)/%.o)
 
 # -fPIC option usally used for nVidia JetsonTX2 AARCH64.
 # remove this option if it cuased to build error.
-CFLAGS  = -mtune=native -fopenmp -ffast-math 
 CFLAGS += -fPIC
 CFLAGS += -I$(SRC_PATH)
 CFLAGS += -DBUILDING_DLL
 
-LFLAGS  = -O2
 LFLAGS += -fopenmp
+LFLAGS += -O2 -s
 
 all: prepare $(BIN_PATH)/$(TARGET)
+static: prepare $(BIN_PATH)/$(LIB_NM)$(LIB_EXT)
 
 prepare:
 	@mkdir -p $(OBJ_PATH)
@@ -38,6 +40,7 @@ prepare:
 clean:
 	@rm -rf $(OBJ_PATH)/*.o
 	@rm -rf $(BIN_PATH)/$(TARGET)
+	@rm -rf $(BIN_PATH)/$(LIB_NM)$(LIB_EXT)
 
 $(OBJS): $(OBJ_PATH)/%.o: $(SRC_PATH)/%.cpp
 	@echo "Compiling $< ..."
@@ -45,8 +48,13 @@ $(OBJS): $(OBJ_PATH)/%.o: $(SRC_PATH)/%.cpp
 
 $(BIN_PATH)/$(TARGET): $(OBJS)
 	@echo "Linking $@ ..."
-	@$(CXX) -shared $(OBJ_PATH)/*.o $(CFLAGS) $(LFLAGS) -o $@
+	@$(CXX) -shared $^ $(CFLAGS) $(LFLAGS) -o $@
 	@cp -rf $(SRC_PATH)/libsrcnn.h $(BIN_PATH)
+
+$(BIN_PATH)/$(LIB_NM)$(LIB_EXT): $(OBJS)
+	@echo "Generating static $@ ..."
+	@$(AR) -cr $@ $^
+	@$(RL) $@
 
 install: $(BIN_PATH)/$(TARGET)
 	@echo "Installing ..."

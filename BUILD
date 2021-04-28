@@ -5,20 +5,21 @@
 1. Determine what you need to build target.
 1. Refer to following cases.
 
-## Static library.
-1. Building static library should able with this,
-	`$ make -f Makefiles/Makefile.staticlib`
-	or for Mac,
-	`$ make -f Makefiles/Makefile.staticlibmac`
-1. Archived library will be stored in 'lib'.
-
 ## Dynamic library
 1. Building dynamic library should able with this,
 	`$ make -f Makefiles/Makefie.windll`
 	or for Mac,
-	`$ make -f Makefiles/Makefile.macosx`
+	`$ make -f Makefiles/Makefile.macos`
 	or for Linux,
 	`$ make -f Makefiles/Makefile.linux`
+
+## Static library
+1. Appens 'static' at each platform target makefile.
+    eg.
+	    `$ make -f Makefiles/Makefile.macos static`
+
+## Big Sur with Apple Silicon (M1)
+1. Makefile sens arm64 with uname -m on MacOS, and generates universal binary for Intel and Silicon.
 
 ## testing unit
 1. Testing program will be availed only for console/shell base.

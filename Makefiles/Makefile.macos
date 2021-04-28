@@ -4,41 +4,56 @@
 CPP = llvm-gcc
 CXX = llvm-g++
 AR  = ar
+RL  = ranlib
+
+# Check architecture for x86.64 or arm64 of BigSur.
+ARCH = $(shell uname -m)
 
 SRC_PATH = src
 OBJ_PATH = obj
 BIN_PATH = lib
 SO_EXT   = .dylib
 LIB_EXT  = .a
-TARGET   = libsrcnn$(SO_EXT)
+LIB_NM   = libsrcnn
+TARGET   = $(LIB_NM)$(SO_EXT)
 
 SRCS  = $(SRC_PATH)/frawscale.cpp
 SRCS += $(SRC_PATH)/libsrcnn.cpp
 OBJS  = $(SRCS:$(SRC_PATH)/%.cpp=$(OBJ_PATH)/%.o)
 
-CFLAGS  = -mtune=native -ffast-math
 CFLAGS += -I$(SRC_PATH)
 CFLAGS += -DBUILDING_DLL
 CFLAGS += -DNO_OMP
 
-LFLAGS  = -O2
-LFLAGS += 
+LFLAGS += -O2
+
+ifeq ($(ARCH),arm64)
+CPUOPT += -arch x86_64 -arch arm64
+endif
 
 all: prepare $(BIN_PATH)/$(TARGET)
+static: prepare $(BIN_PATH)/$(LIB_NM)$(LIB_EXT)
 
 prepare:
 	@mkdir -p $(OBJ_PATH)
 	@mkdir -p $(BIN_PATH)
 
 clean:
+	@echo "Cleaning ..."
 	@rm -rf $(OBJ_PATH)/*.o
 	@rm -rf $(BIN_PATH)/$(TARGET)
+	@rm -rf $(BIN_PATH)/$(LIB_NM)$(LIB_EXT)
 
 $(OBJS): $(OBJ_PATH)/%.o: $(SRC_PATH)/%.cpp
 	@echo "Compiling $< ..."
-	@$(CXX) $(CFLAGS) $(LFLAGS) -c $< -o $@
+	@$(CXX) $(CFLAGS) $(CPUOPT) -c $< -o $@
 
 $(BIN_PATH)/$(TARGET): $(OBJS)
 	@echo "Linking $@ ..."
-	@$(CXX) -shared $(OBJ_PATH)/*.o $(CFLAGS) $(LFLAGS) -o $@
+	@$(CXX) -shared $^ $(CFLAGS) $(CPUOPT) $(LFLAGS) -o $@
 	@cp -rf $(SRC_PATH)/libsrcnn.h $(BIN_PATH)
+
+$(BIN_PATH)/$(LIB_NM)$(LIB_EXT): $(OBJS)
+	@echo "Generating $@ ..."
+	@$(AR) -cr $@ $^
+	@$(RL) $@
