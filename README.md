@@ -27,6 +27,14 @@ This is an open source project from original of this:
 * Works well even without OpenMP ( eg. macOS )
 * Not support M$VC.
 
+## Sample images
+* Bicubic 150%
+    ![IMG_1](Pictures/butterfly_bicubic.png)
+* SRCNN 150%
+    ![IMG_2](Pictures/butterfly_srcnn.png)
+* SRCNN (Convolution Y channel) 150%
+    ![IMG_3](Pictures/butterfly_srcnn_convolution.png)
+
 ## Supporting platforms
 * Windows 32, 64 with MSYS2 + MinGW-W64
 * Almost any Linux, x86_32, x86_64, arm, armhf, aarch64
@@ -82,4 +90,4 @@ This is an open source project from original of this:
 * build with ```make -f Makefile.{your platform}```.
 
 ## Dependency
-* [FLTK-1.3.4-2-ts](https://github.com/rageworx/fltk-1.3.4-2-ts) and [fl_imgtk](https://github.com/rageworx/fl_imgtk) for build test program for read and write image files.
+* [FLTK-custom](https://github.com/rageworx/fltk-custom) and [fl_imgtk](https://github.com/rageworx/fl_imgtk) for build test program for read and write image files.
