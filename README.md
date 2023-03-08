@@ -21,11 +21,12 @@ This is an open source project from original of this:
 
  
 ## Features
-* None-OpenCV.
-* Compilation availed for almost of POSIX.
+* Faster about 400% or more than OpenCV GCC version of SRCNN, with OpenMP.
+* None-OpenCV, no OpenCV required !
+* Compilation availed for almost of POSIX g++.
 * Simply optimized for basic OpenMP.
-* Works well even without OpenMP ( eg. macOS )
-* Not support M$VC.
+* Works well even without OpenMP like macOS.
+* Not support M$VC, sorry MS guyz.
 
 ## Sample images
 * Original 100%
