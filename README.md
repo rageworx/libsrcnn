@@ -28,11 +28,20 @@ This is an open source project from original of this:
 * Not support M$VC.
 
 ## Sample images
+* Original 100%
+
+    ![IMG_0](Pictures/butterfly.png)
+
 * Bicubic 150%
+
     ![IMG_1](Pictures/butterfly_bicubic.png)
+
 * SRCNN 150%
+
     ![IMG_2](Pictures/butterfly_srcnn.png)
+
 * SRCNN (Convolution Y channel) 150%
+
     ![IMG_3](Pictures/butterfly_srcnn_convolution.png)
 
 ## Supporting platforms
