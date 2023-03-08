@@ -22,6 +22,9 @@ This is an open source project from original of this:
  
 ## Features
 * Faster about 400% or more than OpenCV GCC version of SRCNN, with OpenMP.
+    - references :
+    - commit/b340b885a58605f793aa000eebc7f96c19c8e9fe#commitcomment-103507343
+	- commit/b340b885a58605f793aa000eebc7f96c19c8e9fe#commitcomment-103507802
 * None-OpenCV, no OpenCV required !
 * Compilation availed for almost of POSIX g++.
 * Simply optimized for basic OpenMP.
