@@ -24,14 +24,13 @@ This is an open source project from original of this:
 * None-OpenCV.
 * Compilation availed for almost of POSIX.
 * Simply optimized for basic OpenMP.
-* Works well even withou OpenMP ( as like MacOSX )
+* Works well even without OpenMP ( eg. macOS )
 * Not support M$VC.
 
 ## Supporting platforms
-* Windows 32, 64 (MinGW-W64)
-* Linux
-* Embedded Linux, ARM, AARCH64
-* MacOSX ( clang, llvm )
+* Windows 32, 64 with MSYS2 + MinGW-W64
+* Almost any Linux, x86_32, x86_64, arm, armhf, aarch64
+* macOS ( clang, llvm )
 
 ## Latest Changes
 
