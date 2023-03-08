@@ -521,7 +521,7 @@ const char* getPlatform()
 #elif defined(__WIN32)
     sprintf( retstr, "Windows32" );
 #elif defined(__APPLE__)
-    sprintf( retstr, "MacOSX" );
+    sprintf( retstr, "macOS" );
 #elif defined(__linux__)
     sprintf( retstr, "Linux" );
 #else
@@ -564,10 +564,13 @@ const char* getCompilerVersion()
 
 void printAbout()
 {
-    printf( "%s : libsrcnn testing program with FLTK-1.3.5-1-ts, ver %s\n", 
+    printf( "%s : libsrcnn testing program with FLTK-%d.%d.%d, ver %s\n", 
             file_me.c_str(),
+            FL_MAJOR_VERSION,
+            FL_MINOR_VERSION,
+            FL_PATCH_VERSION,
             APP_VERSION_STR );
-    printf( "(C)Copyrighted ~2019 Raphael Kim | " );
+    printf( "(C)Copyrighted ~2023 Raphael Kim | " );
     printf( "build for %s, %s\n", getPlatform(), getCompilerVersion() );
     printf( "\n");
     fflush( stdout );   

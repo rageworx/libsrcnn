@@ -1,4 +1,4 @@
-# Makefile for libsrcnn for MacOSX dylib.
+# Makefile for libsrcnn for macOS dylib, minimal 11.0 universal.
 # by Raphael Kim
 
 CPP = llvm-gcc
@@ -6,8 +6,13 @@ CXX = llvm-g++
 AR  = ar
 RL  = ranlib
 
-# Check architecture for x86.64 or arm64 of BigSur.
-ARCH = $(shell uname -m)
+# sense macOS kernel type
+KERNEL    = $(shell uname -s)
+KRNL_ARCH = $(shell uname -m)
+KRNL_VER  = $(shell uname -r | cut -d . -f1)
+KERNELID  = $(KERNEL)
+MACHINEID = universal
+MACOSMINV = 11.0
 
 SRC_PATH = src
 OBJ_PATH = obj
@@ -27,8 +32,14 @@ CFLAGS += -DNO_OMP
 
 LFLAGS += -O2
 
-ifeq ($(ARCH),arm64)
-CPUOPT += -arch x86_64 -arch arm64
+# architecture flag setting.
+# Darwin, kernel 20 (big sur) automatically using universal binary.
+ifeq ($(KERNEL),Darwin)
+    ifeq ($(shell test $(KRNL_VER) -gt 19; echo $$?),0)
+        CFLAGS += -arch x86_64 -arch arm64
+        CFLAGS += -mmacosx-version-min=$(MACOSMINV)
+        LFLAGS += -arch x86_64 -arch arm64
+    endif
 endif
 
 all: prepare $(BIN_PATH)/$(TARGET)
