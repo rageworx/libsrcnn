@@ -31,8 +31,8 @@
 #endif
 #endif /// of LIBSRCNNSTATIC
 
-// libsrcnn version means,  0.1.9.35
-#define LIBSRCNN_VERSION    0x00010923
+// libsrcnn version means,  0.1.10.40
+#define LIBSRCNN_VERSION    0x00010A28
 
 typedef enum DLL_PUBLIC
 {
@@ -43,9 +43,9 @@ typedef enum DLL_PUBLIC
     SRCNNF_Bspline
 }SRCNNFilterType;
 
-void DLL_PUBLIC ConfigureFilterSRCNN( SRCNNFilterType ftype, 
+void DLL_PUBLIC ConfigureFilterSRCNN( SRCNNFilterType ftype,
                                       bool stepscale  = false );
-int  DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff, 
+int  DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff,
                               unsigned w, unsigned h, unsigned d,
                               float multiply,
                               unsigned char* &outbuff,

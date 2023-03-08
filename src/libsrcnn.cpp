@@ -7,6 +7,9 @@
 **
 ** [ Updates ]
 **
+** - 2023-03-08 -
+**     Layer I + II at once, by zvezdochiot@github.com
+**
 ** - 2018-08-08 -
 **     First C++ code ( non-OpenCV ) code released.
 **     Tested with MinGW-W64 and G++ @ AARCH64 ( nVidia Jetson TX2 )
@@ -43,6 +46,8 @@
 #ifdef DEBUG
 #include "debugtool.h"
 #endif
+
+#define NEW_FAST_I_II_LAYERS
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -95,17 +100,27 @@ void convolution11( ImgConv1Layers &src, ImgYCbCr &dst, \
                     const ConvKernel1 kernel, float bias );
 void convolution55( ImgConv2Layers &src, ImgF32 &dst, \
                     const ConvKernel32_55 kernel, float bias );
+void Convolution99x11( ImgF32& src, ImgF32* dst, const ConvKernel64_99 kernel99, \
+                                                 const ConvKernel1 bias99, \
+                                                 const ConvKernel21 kernel11, \
+                                                 const ConvKernel2 bias11 );
 
 ////////////////////////////////////////////////////////////////////////////////
 
 // some utility functions here ...
+
+inline int intTrim(int a, int b, int c)
+{
+    int buff[3] = {a, c, b};
+    return buff[ (int)(c > a) + (int)(c > b) ];
+}
 
 void resetImgU8( ImgU8 &img )
 {
     img.width = 0;
     img.height = 0;
     img.depth = 0;
-    
+
     if ( img.buff != NULL )
     {
         delete[] img.buff;
@@ -128,7 +143,7 @@ void resetImgF32( ImgF32 &img )
     img.width = 0;
     img.height = 0;
     img.depth = 0;
-    
+
     if ( img.buff != NULL )
     {
         delete[] img.buff;
@@ -141,7 +156,7 @@ void initImgF32( ImgF32 &img, unsigned w, unsigned h )
     img.width = w;
     img.height = h;
     img.depth = 1;
-    
+
     unsigned buffsz = w * h;
     img.buff = new float[ buffsz ];
 }
@@ -212,7 +227,7 @@ void converImgU8toYCbCr( ImgU8 &src, ImgYCbCr &out )
         return;
 
     initImgYCbCr( out, src.width, src.height, src.depth );
-    
+
     unsigned imgsz = src.width * src.height;
 
     #pragma omp parallel for
@@ -221,22 +236,22 @@ void converImgU8toYCbCr( ImgU8 &src, ImgYCbCr &out )
         float fR = (float)src.buff[ ( cnt * src.depth ) + 0 ];
         float fG = (float)src.buff[ ( cnt * src.depth ) + 1 ];
         float fB = (float)src.buff[ ( cnt * src.depth ) + 2 ];
-        
+
         // Y
-        out.Y.buff[cnt] = ( 0.299f * fR ) + 
-                          ( 0.587f * fG ) + 
+        out.Y.buff[cnt] = ( 0.299f * fR ) +
+                          ( 0.587f * fG ) +
                           ( 0.114f * fB );
-        
+
         // Cb
-        out.Cb.buff[cnt] = 128.f - 
-                           ( 0.1687f * fR ) - 
-                           ( 0.3313f * fG ) + 
+        out.Cb.buff[cnt] = 128.f -
+                           ( 0.1687f * fR ) -
+                           ( 0.3313f * fG ) +
                            ( 0.5f * fB );
 
         // Cr
-        out.Cr.buff[cnt] = 128.f + 
-                           ( 0.5f * fR ) - 
-                           ( 0.4187f * fG ) - 
+        out.Cr.buff[cnt] = 128.f +
+                           ( 0.5f * fR ) -
+                           ( 0.4187f * fG ) -
                            ( 0.0813f * fB );
 
         if ( ( src.depth == 4 ) && ( out.uA == true ) )
@@ -258,14 +273,14 @@ void convertImgF32XtoImgU8( ImgF32* src, unsigned d, ImgU8 &out )
     out.height = src[0].height;
     out.depth  = d;
     out.buff   = new unsigned char[ imgsz * d ];
-        
+
     #pragma omp parallel for
     for( unsigned cnt=0; cnt<imgsz; cnt++ )
     {
         float fY  = src[0].buff[cnt];
         float fCb = src[1].buff[cnt] - 128.f;
         float fCr = src[2].buff[cnt] - 128.f;
-        
+
         float fR  = MIN(255.f, fY + 45.f * fCr / 32.f);
         float fG  = MIN(255.f, fY - ( 11.f * fCb + 23.f * fCr ) / 32.f);
         float fB  = MIN(255.f, fY + 113.f * fCb / 64.f );
@@ -286,20 +301,20 @@ void convertImgF32XtoImgU8( ImgF32* src, unsigned d, ImgU8 &out )
 void convertYCbCrtoImgU8( ImgYCbCr &src, unsigned d, ImgU8* &out )
 {
     out = new ImgU8;
-    
+
     if ( out == NULL )
         return;
-    
+
     unsigned imgsz = src.Y.width * src.Y.height;
 
     out->width  = src.Y.width;
     out->height = src.Y.height;
     out->depth  = d;
     out->buff   = new unsigned char[ imgsz * d ];
-    
+
     if ( out->buff == NULL )
         return;
-    
+
     #pragma omp parallel for
     for( unsigned cnt=0; cnt<imgsz; cnt++ )
     {
@@ -328,13 +343,13 @@ void convolution99( ImgF32 &src, ImgF32 &dst, const KernelMat99 kernel, float bi
     /* Expand the src image */
     ImgF32 src2;
     initImgF32( src2, src.width + 8, src.height + 8 );
-    
+
     if ( src2.buff == NULL )
     {
         resetImgF32( src2 );
         return;
     }
-    
+
     for ( unsigned row = 0; row<src2.height; row++ )
     {
         for ( unsigned col = 0; col<src2.width; col++ )
@@ -346,7 +361,7 @@ void convolution99( ImgF32 &src, ImgF32 &dst, const KernelMat99 kernel, float bi
             {
                 tmpRow = 0;
             }
-            else 
+            else
             if ( tmpRow >= src.height )
             {
                 tmpRow = src.height - 1;
@@ -356,7 +371,7 @@ void convolution99( ImgF32 &src, ImgF32 &dst, const KernelMat99 kernel, float bi
             {
                 tmpCol = 0;
             }
-            else 
+            else
             if ( tmpCol >= src.width )
             {
                 tmpCol = src.width - 1;
@@ -380,11 +395,11 @@ void convolution99( ImgF32 &src, ImgF32 &dst, const KernelMat99 kernel, float bi
                 for ( unsigned y=0; y<9; y++ )
                 {
                     unsigned pos = ( row  + x ) * src2.width + ( col + y );
-    
-                    temp += kernel[x][y] * src2.buff[pos];                      
+
+                    temp += kernel[x][y] * src2.buff[pos];
                 }
             }
-            
+
             temp += bias;
 
             /* Threshold */
@@ -393,7 +408,7 @@ void convolution99( ImgF32 &src, ImgF32 &dst, const KernelMat99 kernel, float bi
             dst.buff[ row * dst.width + col ] = temp;
         }
     }
-    
+
     delete[] src2.buff;
 }
 
@@ -408,10 +423,10 @@ void convolution11( ImgConv1Layers &src, ImgF32 &dst, const ConvKernel1 kernel, 
 
             for ( unsigned fc=0; fc<CONV1_FILTERS; fc++ )
             {
-                temp += src[fc].buff[ row * src[fc].width + col ] 
+                temp += src[fc].buff[ row * src[fc].width + col ]
                         * kernel[fc];
             }
-            
+
             temp += bias;
 
             /* Threshold */
@@ -426,9 +441,9 @@ void convolution55( ImgConv2Layers &src, ImgF32 &dst, const ConvKernel32_55 kern
 {
     /* Expand the src image */
     ImgConv2Layers src2;
-    initImgConvLayers( &src2[0], 
-                       src[0].width + 4, 
-                       src[0].height + 4, 
+    initImgConvLayers( &src2[0],
+                       src[0].width + 4,
+                       src[0].height + 4,
                        CONV2_FILTERS );
 
     #pragma omp parallel for
@@ -445,7 +460,7 @@ void convolution55( ImgConv2Layers &src, ImgF32 &dst, const ConvKernel32_55 kern
                 {
                     tmpRow = 0;
                 }
-                else 
+                else
                 if (tmpRow >= src[cnt].height)
                 {
                     tmpRow = src[cnt].height - 1;
@@ -455,7 +470,7 @@ void convolution55( ImgConv2Layers &src, ImgF32 &dst, const ConvKernel32_55 kern
                 {
                     tmpCol = 0;
                 }
-                else 
+                else
                 if (tmpCol >= src[cnt].width)
                 {
                     tmpCol = src[cnt].width - 1;
@@ -466,7 +481,7 @@ void convolution55( ImgConv2Layers &src, ImgF32 &dst, const ConvKernel32_55 kern
             }
         }
     }
-    
+
     /* Complete the Convolution Step */
     #pragma omp parallel for
     for ( unsigned row=0; row<dst.height; row++ )
@@ -478,7 +493,7 @@ void convolution55( ImgConv2Layers &src, ImgF32 &dst, const ConvKernel32_55 kern
             for ( unsigned i=0; i<CONV2_FILTERS; i++ )
             {
                 double temppixel = 0;
-                
+
                 for ( unsigned y=0; y<5; y++ )
                 {
                     for ( unsigned x=0; x<5; x++ )
@@ -496,15 +511,88 @@ void convolution55( ImgConv2Layers &src, ImgF32 &dst, const ConvKernel32_55 kern
 
 			temp = MAX( temp, 0.f );
 			temp = MIN( temp, 255.f );
-			
+
             dst.buff[ row * dst.width + col ] = temp;
         }
     }
-    
-    discardConvLayers( &src2[0], CONV2_FILTERS );   
+
+    discardConvLayers( &src2[0], CONV2_FILTERS );
 }
 
-int doSRCNN( const unsigned char* refbuff, 
+void Convolution99x11( ImgF32& src, ImgF32* dst, const ConvKernel64_99 kernel99, \
+                                                 const ConvKernel1 bias99, \
+                                                 const ConvKernel21 kernel11, \
+                                                 const ConvKernel2 bias11 )
+{
+    float result = 0.f;
+    int height   = src.height;
+    int width    = src.width;
+    int row      = 0;
+    int col      = 0;
+    float temp[CONV1_FILTERS] = {0.f};
+    int rowf[height + 8]      = {0};
+    int colf[width + 8]       = {0};
+
+    /* Expand the src image */
+    #pragma omp parallel for
+    for (row = 0; row < height + 8; row++)
+    {
+        rowf[row] = intTrim(0, height - 1, row - 4);
+    }
+
+    #pragma omp parallel for
+    for (col = 0; col < width + 8; col++)
+    {
+        colf[col] = intTrim(0, width - 1, col - 4);
+    }
+
+    /* Complete the Convolution Step */
+    #pragma omp parallel for private(col,temp) shared(dst)
+    for (row = 0; row < height; row++)
+    {
+        for (col = 0; col < width; col++)
+        {
+            for (int k = 0; k < CONV1_FILTERS; k++)
+            {
+                /* Convolution */
+                temp[k] = 0.f;
+
+                for (int i = 0; i < 9; i++)
+                {
+                    for (int j = 0; j < 9; j++)
+                    {
+                        temp[k] += kernel99[k][i][j] \
+                                   * src.buff[ rowf[row + i] * width + colf[col + j] ];
+                    }
+                }
+
+                temp[k] += bias99[k];
+
+                /* Threshold */
+                temp[k] = (temp[k] < 0) ? 0 : temp[k];
+            }
+
+            /* Process with each pixel */
+            for (int k = 0; k < CONV2_FILTERS; k++)
+            {
+                result = 0.0;
+
+                for (int i = 0; i < CONV1_FILTERS; i++)
+                {
+                    result += temp[i] * kernel11[k][i];
+                }
+                result += bias11[k];
+
+                /* Threshold */
+                result = (result < 0) ? 0 : result;
+
+                dst[k].buff[row * width + col] = result;
+            }
+        }
+    }
+}
+
+int doSRCNN( const unsigned char* refbuff,
              unsigned w, unsigned h, unsigned d,
              float muliply,
              unsigned char* &outbuff,
@@ -513,31 +601,31 @@ int doSRCNN( const unsigned char* refbuff,
              unsigned* convbuffsz )
 {
     int retval = -100;
-    
+
     // -------------------------------------------------------------
     // Convert RGB to Y-Cb-Cr
     //
     // warning: imgSrc is referenced, don't remove from memory !
     libsrcnn::ImgU8     imgSrc = { w ,h ,d, (unsigned char*)refbuff };
     libsrcnn::ImgYCbCr  imgYCbCr;
-    
+
     converImgU8toYCbCr( imgSrc, imgYCbCr );
-    
+
 #ifdef DEBUG_COLORSAPCE
     saveImgYCbCr( &imgYCbCr, "debugimg" );
 #endif
-    
+
     /* --
      * Resize the Y Channel with Bicubic Interpolation,
      * Other layers just doing linear interpolation.
      */
 
     libsrcnn::ImgF32 imgResized[4];
-    const float* refimgbuf[4] = { imgYCbCr.Y.buff, 
-                                  imgYCbCr.Cb.buff, 
+    const float* refimgbuf[4] = { imgYCbCr.Y.buff,
+                                  imgYCbCr.Cb.buff,
                                   imgYCbCr.Cr.buff,
                                   imgYCbCr.A.buff };
-    
+
     unsigned rs_w = imgYCbCr.Y.width  * muliply;
     unsigned rs_h = imgYCbCr.Y.height * muliply;
 
@@ -550,7 +638,7 @@ int doSRCNN( const unsigned char* refbuff,
         imgResized[cnt].buff   = NULL;
 
         FRAWGenericFilter* rszfilter;
-    
+
         if ( cnt == 0 )
         {
             switch( libsrcnn::intp_filter )
@@ -559,19 +647,19 @@ int doSRCNN( const unsigned char* refbuff,
                 case SRCNNF_Nearest:
                     rszfilter = new FRAWBoxFilter;
                     break;
-                    
+
                 case SRCNNF_Bilinear:
                     rszfilter = new FRAWBilinearFilter;
                     break;
-                    
+
                 case SRCNNF_Bicubic:
                     rszfilter = new FRAWBicubicFilter;
                     break;
-                    
+
                 case SRCNNF_Lanczos3:
                     rszfilter = new FRAWLanczos3Filter;
                     break;
-                    
+
                 case SRCNNF_Bspline:
                     rszfilter = new FRAWBSplineFilter;
                     break;
@@ -584,26 +672,26 @@ int doSRCNN( const unsigned char* refbuff,
                 case SRCNNF_Nearest:
                     rszfilter = new FRAWBoxFilter;
                     break;
-                    
+
                 default:
                 case SRCNNF_Bilinear:
                     rszfilter = new FRAWBilinearFilter;
                     break;
             }
         }
-     
+
         FRAWResizeEngine rsze( rszfilter );
-            
-        rsze.scale( refimgbuf[cnt], 
+
+        rsze.scale( refimgbuf[cnt],
                     imgYCbCr.Y.width,
                     imgYCbCr.Y.height,
                     rs_w,
                     rs_h,
                     &imgResized[cnt].buff );
-                   
+
         delete rszfilter;
     }
-    
+
     // Release splitted image of Y-Cb-Cr --
     discardImgYCbCr( imgYCbCr );
 
@@ -620,22 +708,43 @@ int doSRCNN( const unsigned char* refbuff,
         saveImgF32( &imgResized[3], "resized_A.png" );
     }
 #endif
-    
+
+#ifdef NEW_FAST_I_II_LAYERS
+    /******************* Fast I + II Layer *******************/
+
+    libsrcnn::ImgConv2Layers imgConv2;
+
+    libsrcnn::initImgConvLayers( &imgConv2[0],
+                                 imgResized[0].width,
+                                 imgResized[0].height,
+                                 CONV2_FILTERS );
+
+    Convolution99x11( imgResized[0], imgConv2, weights_conv1_data, biases_conv1, weights_conv2_data, biases_conv2 );
+
+    #ifdef DEBUG
+        for ( unsigned cnt=0; cnt<CONV2_FILTERS; cnt++ )
+        {
+            char strtmp[80] = {0};
+            sprintf( strtmp, "new_conv2_%u.png", cnt );
+            saveImgF32( &imgConv2[cnt], strtmp );
+        }
+    #endif
+#else
     /******************* The First Layer *******************/
 
     libsrcnn::ImgConv1Layers imgConv1;
-    
-    libsrcnn::initImgConvLayers( &imgConv1[0], 
+
+    libsrcnn::initImgConvLayers( &imgConv1[0],
                                  imgResized[0].width,
                                  imgResized[0].height,
                                  CONV1_FILTERS );
-        
+
     #pragma omp parallel for
     for ( unsigned cnt=0; cnt<CONV1_FILTERS; cnt++)
     {
-        libsrcnn::convolution99( imgResized[0], 
-                                 imgConv1[cnt], 
-                                 weights_conv1_data[cnt], 
+        libsrcnn::convolution99( imgResized[0],
+                                 imgConv1[cnt],
+                                 weights_conv1_data[cnt],
                                  biases_conv1[cnt] );
     }
 
@@ -646,24 +755,24 @@ int doSRCNN( const unsigned char* refbuff,
         sprintf( strtmp, "conv1_%u.png", cnt );
         saveImgF32( &imgConv1[cnt], strtmp );
     }
-#endif                           
+#endif
 
     /******************* The Second Layer *******************/
 
     libsrcnn::ImgConv2Layers imgConv2;
-    
-    libsrcnn::initImgConvLayers( &imgConv2[0], 
+
+    libsrcnn::initImgConvLayers( &imgConv2[0],
                                  imgResized[0].width,
                                  imgResized[0].height,
                                  CONV2_FILTERS );
-    
+
     #pragma omp parallel for
     for ( unsigned cnt=0; cnt<CONV2_FILTERS; cnt++ )
     {
-        libsrcnn::convolution11( imgConv1, 
-                                 imgConv2[cnt], 
-                                 weights_conv2_data[cnt], 
-                                 biases_conv2[cnt]);    
+        libsrcnn::convolution11( imgConv1,
+                                 imgConv2[cnt],
+                                 weights_conv2_data[cnt],
+                                 biases_conv2[cnt]);
     }
 
 #ifdef DEBUG
@@ -673,42 +782,45 @@ int doSRCNN( const unsigned char* refbuff,
         sprintf( strtmp, "conv2_%u.png", cnt );
         saveImgF32( &imgConv2[cnt], strtmp );
     }
-#endif                           
-    
+#endif /// of DEBUG
+#endif /// of NEW_FAST_I_II_LAYERS
+
     /******************* The Third Layer *******************/
 
     libsrcnn::ImgF32 imgConv3;
-        
-    libsrcnn::initImgF32( imgConv3, 
-                          imgResized[0].width, 
+
+    libsrcnn::initImgF32( imgConv3,
+                          imgResized[0].width,
                           imgResized[0].height );
-    
-    libsrcnn::convolution55( imgConv2, imgConv3, 
-                             weights_conv3_data, 
+
+    libsrcnn::convolution55( imgConv2, imgConv3,
+                             weights_conv3_data,
                              biases_conv3 );
-                             
+
 #ifdef DEBUG
     saveImgF32( &imgConv3, "conv3.png" );
-#endif                           
-                                
+#endif
+
     // ---------------------------------------------------------
 	// Copy Third layer result to Y channel.
-	
+
 	unsigned convsz = imgResized[0].width \
                       * imgResized[0].height * sizeof( float );
 	memcpy( imgResized[0].buff, imgConv3.buff, convsz );
-	
+
     /* Convert the image from YCrCb to RGB Space */
     libsrcnn::ImgU8 imgRGB;
     libsrcnn::convertImgF32XtoImgU8( imgResized, d, imgRGB );
-    
+
     // discard used image of Resized Y-Cr-Cb.
     libsrcnn::discardConvLayers( imgResized, d );
-    
+
     // discard used buffers ..
+#ifndef NEW_FAST_I_II_LAYERS
     libsrcnn::discardConvLayers( &imgConv1[0], CONV1_FILTERS );
+#endif /// of ! NEW_FAST_I_II_LAYERS
     libsrcnn::discardConvLayers( &imgConv2[0], CONV2_FILTERS );
-        
+
     if ( imgRGB.buff != NULL )
     {
         outbuffsz = imgRGB.width * imgRGB.height * imgRGB.depth;
@@ -722,10 +834,10 @@ int doSRCNN( const unsigned char* refbuff,
         {
             retval = -11;
         }
-        
-        resetImgU8( imgRGB );            
+
+        resetImgU8( imgRGB );
     }
-    
+
     if ( ( convbuff != NULL ) && ( convbuffsz != NULL ) )
     {
         if ( ( imgConv3.buff != NULL ) && ( retval == 0 ) )
@@ -739,17 +851,17 @@ int doSRCNN( const unsigned char* refbuff,
                 {
 					buff[ cnt ] = (unsigned char)imgConv3.buff[ cnt ];
 				}
-				
+
 				*convbuff   = buff;
 				*convbuffsz = bsz;
-				
+
                 retval = 0;
             }
             else
             {
                 retval = -12;
             }
-            
+
             resetImgF32( imgConv3 );
         }
     }
@@ -758,7 +870,7 @@ int doSRCNN( const unsigned char* refbuff,
     {
         resetImgF32( imgConv3 );
     }
-    
+
     return retval;
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -780,7 +892,7 @@ void DLL_PUBLIC ConfigureFilterSRCNN( SRCNNFilterType ftype, bool stepscale )
     }
 }
 
-int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff, 
+int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff,
                              unsigned w, unsigned h, unsigned d,
                              float multiply,
                              unsigned char* &outbuff,
@@ -796,7 +908,7 @@ int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff,
             w, h ,d, multiply );
     fflush( stdout );
 #endif
-  
+
     float m_w = (float)w * multiply;
     float m_h = (float)h * multiply;
 
@@ -822,7 +934,7 @@ int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff,
         // Calc multiply by factor 2.0...
         float lf   = fmodf( multiply, 2.f );
         int repeat = (int)(multiply / 2.f);
-     
+
         const unsigned char* rbuff = refbuff;
         unsigned char* obuff = NULL;
         unsigned obuffsz = 0;
@@ -847,7 +959,7 @@ int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff,
                 if ( ( curmf == 0.f ) || ( curmf == 1.0f ) )
                     break;
             }
-           
+
             obuffsz = sw * sh * d;
 
             if ( cnt > 0 )
@@ -882,7 +994,7 @@ int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff,
                 rbuff = NULL;
                 break;
             }
-            
+
             if ( repeat > 1 )
             {
                 sw *= curmf;
@@ -899,6 +1011,6 @@ int DLL_PUBLIC ProcessSRCNN( const unsigned char* refbuff,
         outbuffsz = obuffsz;
         convbuff = cbuff;
     }
-   
+
     return retval;
 }

@@ -21,8 +21,8 @@ This is an open source project from original of this:
 
  
 ## Features
-* No OpenCV.
-* Compile availed for almost of POSIX.
+* None-OpenCV.
+* Compilation availed for almost of POSIX.
 * Simply optimized for basic OpenMP.
 * Works well even withou OpenMP ( as like MacOSX )
 * Not support M$VC.
@@ -34,11 +34,17 @@ This is an open source project from original of this:
 * MacOSX ( clang, llvm )
 
 ## Latest Changes
+
+### Verison 0.1.10.40
+* Better speed, less memory usage by convolution I+II
+* Regards to zvezdochiot@github
+
+## Previous Changes
+
 ### Verison 0.1.9.35
 * Fixed memory bug in float images from RGB case.
 * header version flag fixed.
 
-## Previous Changes
 ### Verison 0.1.9.34
 * Fixed don't use color space scaling with bicubic filter.
 * Now supporting alpha channel.

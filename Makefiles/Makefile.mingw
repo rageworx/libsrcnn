@@ -1,0 +1,70 @@
+# Makefile for libsrcnn for MinGW-W64 static lib.
+# by Raphael Kim
+
+CPP = gcc
+CXX = g++
+AR  = ar
+RL  = ranlib
+
+SRC_PATH = src
+OBJ_PATH = obj
+BIN_PATH = lib
+LIB_EXT  = .a
+LIB_NM   = libsrcnn
+TARGET   = $(LIB_NM)$(SO_EXT)
+
+INST_L_PATH = /usr/local/lib
+INST_H_PATH = /usr/local/include
+
+SRCS  = $(SRC_PATH)/frawscale.cpp
+SRCS += $(SRC_PATH)/libsrcnn.cpp
+OBJS  = $(SRCS:$(SRC_PATH)/%.cpp=$(OBJ_PATH)/%.o)
+
+# -fPIC option usally used for nVidia JetsonTX2 AARCH64.
+# remove this option if it cuased to build error.
+CFLAGS += -fPIC
+CFLAGS += -I$(SRC_PATH)
+CFLAGS += -DLIBSRCNNSTATIC
+
+LFLAGS += -fopenmp
+LFLAGS += -O2 -s
+
+.PHONY: all static prepare
+
+all: prepare static
+static: prepare $(BIN_PATH)/$(LIB_NM)$(LIB_EXT)
+
+prepare:
+	@mkdir -p $(OBJ_PATH)
+	@mkdir -p $(BIN_PATH)
+
+clean:
+	@rm -rf $(OBJ_PATH)/*.o
+	@rm -rf $(BIN_PATH)/$(TARGET)
+	@rm -rf $(BIN_PATH)/$(LIB_NM)$(LIB_EXT)
+
+$(OBJS): $(OBJ_PATH)/%.o: $(SRC_PATH)/%.cpp
+	@echo "Compiling $< ..."
+	@$(CXX) $(CFLAGS) $(LFLAGS) -c $< -o $@
+
+$(BIN_PATH)/$(TARGET): $(OBJS)
+	@echo "Linking $@ ..."
+	@$(CXX) -shared $^ $(CFLAGS) $(LFLAGS) -o $@
+	@cp -rf $(SRC_PATH)/libsrcnn.h $(BIN_PATH)
+
+$(BIN_PATH)/$(LIB_NM)$(LIB_EXT): $(OBJS)
+	@echo "Generating static $@ ..."
+	@$(AR) -cr $@ $^
+	@$(RL) $@
+
+install: $(BIN_PATH)/$(TARGET)
+	@echo "Installing ..."
+	@cp -rf $< $(INST_L_PATH)
+	@cp -rf $(SRC_PATH)/libsrcnn.h $(INST_H_PATH)
+	@ldconfig
+
+uninstall: $(INST_L_PATH)/$(TARGET)
+	@echo "Uninstalling ..."
+	@rm -rf $<
+	@rm -rf $(INST_H_PATH)/libsrcnn.h
+	@ldconfig
