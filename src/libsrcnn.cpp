@@ -530,8 +530,11 @@ void Convolution99x11( ImgF32& src, ImgF32* dst, const ConvKernel64_99 kernel99,
     int row      = 0;
     int col      = 0;
     float temp[CONV1_FILTERS] = {0.f};
-    int rowf[height + 8]      = {0};
-    int colf[width + 8]       = {0};
+    // -- ignore initializing warning --
+    // macOS warning these two array not be initialized.
+    int rowf[width+8];
+    int colf[height+8];
+    // --------------------------------
 
     /* Expand the src image */
     #pragma omp parallel for

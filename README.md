@@ -100,7 +100,11 @@ This is an open source project from original of this:
 * Your G++.
 
 ## How to build ?
-* build with ```make -f Makefile.{your platform}```.
+* Make a symlink from `Makefile.{your platform}` in `makefiles` directory.
+   - eg.) `ln -s makefiles/Makefile.macos Makefile`
+* Then build with `make`.
 
 ## Dependency
+* Testing application by `make -f makefiles/Makefile.test` may requires FLTK and fl_imgtk libraries.
+* FLTK should be installed by anyway, but recommend to my below FLTK-custom with fl_imgtk.
 * [FLTK-custom](https://github.com/rageworx/fltk-custom) and [fl_imgtk](https://github.com/rageworx/fl_imgtk) for build test program for read and write image files.
