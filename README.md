@@ -13,6 +13,10 @@ This is an open source project from original of this:
  - If you want to download the training code(caffe) or test code(Matlab) for SRCNN, please open your browse and visit http://mmlab.ie.cuhk.edu.hk/projects/SRCNN.html for more details.
  - And thank you very much for Chao's work in SRCNN.
 
+## WIKI
+* See [Wiki](wiki) page.
+* Includes OpenMP support for macOS.
+
 ## Additional references
 * Fast resizing methods for BiCubic filtering 
     * [Free Image Project](http://freeimage.sourceforge.net/)
