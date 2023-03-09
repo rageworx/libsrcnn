@@ -14,7 +14,7 @@ This is an open source project from original of this:
  - And thank you very much for Chao's work in SRCNN.
 
 ## WIKI
-* See [Wiki](wiki) page.
+* See [Wiki](https://github.com/rageworx/libsrcnn/wiki) page.
 * Includes OpenMP support for macOS.
 
 ## Additional references
