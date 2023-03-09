@@ -740,7 +740,7 @@ int main( int argc, char** argv )
                 Fl_RGB_Image* imgDump = new Fl_RGB_Image( outbuff, new_w, new_h, ref_d );
                 if ( imgDump != NULL )
                 {
-                    printf( "- Saving rezied result to %s ... ", file_dst.c_str() );
+                    printf( "- Saving resized result to %s ... ", file_dst.c_str() );
                     
                     if ( savetocolorpng( imgDump, file_dst.c_str() ) == true )
                     {
