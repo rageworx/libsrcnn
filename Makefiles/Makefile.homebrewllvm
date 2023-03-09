@@ -1,0 +1,80 @@
+# Makefile for libsrcnn for macOS dylib, with homebrew llvm
+# Before use this makefile, make sure 
+#   - brew install llvm
+#   - brew install libomp
+# by Raphael Kim
+
+CPP = /usr/local/opt/llvm/bin/clang
+CXX = /usr/local/opt/llvm/bin/clang
+AR  = /usr/local/opt/llvm/bin/llvm-ar
+RL  = /usr/local/opt/llvm/bin/llvm-ranlib
+
+# sense macOS kernel type
+KERNEL    = $(shell uname -s)
+KRNL_ARCH = $(shell uname -m)
+KRNL_VER  = $(shell uname -r | cut -d . -f1)
+KERNELID  = $(KERNEL)
+MACHINEID = universal
+MACOSMINV = 11.0
+
+SRC_PATH = src
+OBJ_PATH = obj
+BIN_PATH = lib
+SO_EXT   = .dylib
+LIB_EXT  = .a
+LIB_NM   = libsrcnn
+
+SRCS  = $(SRC_PATH)/frawscale.cpp
+SRCS += $(SRC_PATH)/libsrcnn.cpp
+OBJS  = $(SRCS:$(SRC_PATH)/%.cpp=$(OBJ_PATH)/%.o)
+
+CFLAGS += -I$(SRC_PATH)
+#CFLAGS += -DLIBSRCNNSTATIC
+
+CFLAGS += -O2 -fopenmp
+LFLAGS += -O2 -fopenmp
+
+# homebrew llvm configuration
+LFLAGS += "-L/usr/local/opt/llvm/lib"
+LFLAGS += "-L/usr/local/opt/llvm/lib/c++"
+LFLAGS += "-Wl,-rpath,/usr/local/opt/llvm/lib/c++"
+CFLAGS += "-I/usr/local/opt/llvm/include"
+CPUOPT = ""
+
+# OpenMP ( install libomp first with homebrew )
+LFLAGS += "-L/usr/local/opt/libomp/lib"
+CFLAGS += "-I/usr/local/opt/libomp/include"
+
+# appends for llvm
+LFLAGS += "-lstdc++"
+
+.PHONY: all static prepare test
+
+all: prepare static
+static: prepare $(BIN_PATH)/$(LIB_NM)$(LIB_EXT)
+dylib: prepare $(BIN_PATH)/$(LIB_NM)$(SO_EXT)
+
+prepare:
+	@mkdir -p $(OBJ_PATH)
+	@mkdir -p $(BIN_PATH)
+
+clean:
+	@echo "Cleaning ..."
+	@rm -rf $(OBJ_PATH)/*.o
+	@rm -rf $(OBJ_PATH)/test/*.o
+	@rm -rf $(BIN_PATH)/$(LIB_NM)$(SO_EXT)
+	@rm -rf $(BIN_PATH)/$(LIB_NM)$(LIB_EXT)
+
+$(OBJS): $(OBJ_PATH)/%.o: $(SRC_PATH)/%.cpp
+	@echo "Compiling $< ..."
+	@$(CXX) $(CFLAGS) $(CPUOPT) -c $< -o $@
+
+$(BIN_PATH)/$(LIB_NM)$(SO_EXT): $(OBJS)
+	@echo "Linking $@ ..."
+	@$(CXX) -shared $^ $(CFLAGS) $(CPUOPT) $(LFLAGS) -o $@
+	@cp -rf $(SRC_PATH)/libsrcnn.h $(BIN_PATH)
+
+$(BIN_PATH)/$(LIB_NM)$(LIB_EXT): $(OBJS)
+	@echo "Generating $@ ..."
+	@$(AR) -cr $@ $^
+	@$(RL) $@
