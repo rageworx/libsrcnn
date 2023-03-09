@@ -517,15 +517,15 @@ const char* getPlatform()
 {
     static char retstr[32] = {0};
 #if defined(__WIN64)
-    sprintf( retstr, "Windows64" );
+    snprintf( retstr, 32, "Windows64" );
 #elif defined(__WIN32)
-    sprintf( retstr, "Windows32" );
+    snprintf( retstr, 32, "Windows32" );
 #elif defined(__APPLE__)
-    sprintf( retstr, "macOS" );
+    snprintf( retstr, 32, "macOS" );
 #elif defined(__linux__)
-    sprintf( retstr, "Linux" );
+    snprintf( retstr, 32, "Linux" );
 #else
-    sprintF( retstr, "unknown platform" );
+    snprintF( retstr, 32, "unknown platform" );
 #endif
     return retstr;
 }
@@ -534,29 +534,29 @@ const char* getCompilerVersion()
 {
     static char retstr[64] = {0};
 #if defined(__MINGW64__)
-    sprintf( retstr, 
-             "MinGW-W64-%d.%d(%d.%d.%d)",
-             __MINGW64_VERSION_MAJOR,
-             __MINGW64_VERSION_MINOR,
-             __GNUC__,
-             __GNUC_MINOR__,
-             __GNUC_PATCHLEVEL__ );
+    snprintf( retstr, 64,
+              "MinGW-W64-%d.%d(%d.%d.%d)",
+              __MINGW64_VERSION_MAJOR,
+              __MINGW64_VERSION_MINOR,
+              __GNUC__,
+              __GNUC_MINOR__,
+              __GNUC_PATCHLEVEL__ );
 #elif defined(__MINGW32__)
-    sprintf( retstr, 
-             "MinGW-W32-%d.%d(%d.%d.%d)",
-             __MINGW32_MAJOR_VERSION,
-             __MINGW32_MINOR_VERSION, 
-             __GNUC__,
-             __GNUC_MINOR__,
-             __GNUC_PATCHLEVEL__ );
+    snprintf( retstr, 64,
+              "MinGW-W32-%d.%d(%d.%d.%d)",
+              __MINGW32_MAJOR_VERSION,
+              __MINGW32_MINOR_VERSION, 
+              __GNUC__,
+              __GNUC_MINOR__,
+              __GNUC_PATCHLEVEL__ );
 #elif defined(__GNUC__)
-    sprintf( retstr, 
-             "GNU-GCC-%d.%d.%d",
-             __GNUC__,
-             __GNUC_MINOR__,
-             __GNUC_PATCHLEVEL__ );
+    snprintf( retstr, 64,
+              "GNU-GCC-%d.%d.%d",
+              __GNUC__,
+              __GNUC_MINOR__,
+              __GNUC_PATCHLEVEL__ );
 #else
-    strcat( retstr, "unknown comiler" );
+    strncat( retstr, "unknown comiler", 64 );
 #endif
 
     return retstr;

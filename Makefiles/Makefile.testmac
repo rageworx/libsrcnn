@@ -7,6 +7,14 @@ GPP = llvm-g++
 AR  = ar
 FCG = fltk-config --use-images
 
+# sense macOS kernel type
+KERNEL    = $(shell uname -s)
+KRNL_ARCH = $(shell uname -m)
+KRNL_VER  = $(shell uname -r | cut -d . -f1)
+KERNELID  = $(KERNEL)
+MACHINEID = universal
+MACOSMINV = 11.0
+
 # FLTK configs 
 FLTKCFG_CXX := $(shell ${FCG} --cxxflags)
 FLTKCFG_LFG := $(shell ${FCG} --ldflags)
@@ -46,6 +54,17 @@ LFLAGS += -lpthread
 LFLAGS += -lfl_imgtk
 LFLAGS += $(FLTKCFG_LFG)
 
+# architecture flag setting.
+# Darwin, kernel 20 (big sur) automatically using universal binary.
+ifeq ($(KERNEL),Darwin)
+    ifeq ($(shell test $(KRNL_VER) -gt 19; echo $$?),0)
+        CFLAGS += -arch x86_64 -arch arm64
+        CFLAGS += -mmacosx-version-min=$(MACOSMINV)
+        LFLAGS += -arch x86_64 -arch arm64
+    endif
+endif
+
+# source to obj, automatic.
 SRCS = $(SRC_PATH)/test.cpp $(SRC_PATH)/tick.cpp
 OBJS = $(SRCS:$(SRC_PATH)/%.cpp=$(TARGET_OBJ)/%.o)
 

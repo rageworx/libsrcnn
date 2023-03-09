@@ -101,8 +101,12 @@ This is an open source project from original of this:
 
 ## How to build ?
 * Make a symlink from `Makefile.{your platform}` in `makefiles` directory.
-   - eg.) `ln -s makefiles/Makefile.macos Makefile`
+    - eg.) `ln -s makefiles/Makefile.macos Makefile`
 * Then build with `make`.
+* Testing applications may one of these,
+	- `make -f makefiles/Makefile.test`
+	- or
+	- `make -f makefiles/Makefiles.testmac`
 
 ## Dependency
 * Testing application by `make -f makefiles/Makefile.test` may requires FLTK and fl_imgtk libraries.
