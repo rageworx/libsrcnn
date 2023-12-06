@@ -4,6 +4,11 @@
 # Written by Raph.K.
 #
 
+#CPP = $(HOMEBREW_PREFIX)/opt/llvm/bin/clang
+#CXX = $(HOMEBREW_PREFIX)/opt/llvm/bin/clang
+#AR  = $(HOMEBREW_PREFIX)/opt/llvm/bin/llvm-ar
+#RL  = $(HOMEBREW_PREFIX)/opt/llvm/bin/llvm-ranlib
+
 GCC = llvm-gcc
 GPP = llvm-g++
 AR  = ar
@@ -33,7 +38,6 @@ TARGET_OBJ = ./obj/test
 # DEFINITIONS
 # test app don't using OpemMP.
 DEFS  = -DFORTESTINGBIN
-DEFS += -DNO_OMP
 
 # Compiler optiops 
 COPTS  = 
@@ -44,6 +48,7 @@ COPTS += $(FLTKCFG_CXX)
 CFLAGS  = -I$(SRC_PATH)
 CFLAGS += -I$(LIB_PATH)
 CFLAGS += -I$(RES_PATH)
+CFLAGS += -I$(HOMEBREW_CELLAR)/libomp/17.0.6/include
 CFLAGS += -I../fl_imgtk/lib
 CFLAGS += $(DEFS)
 CFLAGS += $(COPTS)
@@ -51,9 +56,10 @@ CFLAGS += $(COPTS)
 # LINK FLAG
 LFLAGS  = -L$(LIB_PATH)
 LFLAGS += -L../fl_imgtk/lib
+LFLAGS += -L$(HOMEBREW_PREFIX)/opt/llvm/lib/
 LFLAGS += -lsrcnn
-LFLAGS += -lpthread
 LFLAGS += -lfl_imgtk
+LFLAGS += -lomp
 LFLAGS += $(FLTKCFG_LFG)
 
 # source to obj, automatic.
