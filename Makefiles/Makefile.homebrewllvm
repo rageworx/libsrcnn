@@ -32,7 +32,8 @@ CFLAGS += -I$(SRC_PATH)
 #CFLAGS += -DLIBSRCNNSTATIC
 
 CFLAGS += -O2 -fopenmp
-CFLAGS += -DDEBUG
+# -- for debugging 
+#CFLAGS += -DDEBUG
 
 # homebrew llvm configuration
 LFLAGS += "-L/usr/local/opt/llvm/lib"
