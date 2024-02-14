@@ -137,7 +137,7 @@ int testImageFile( const char* imgfp, uchar** buff,size_t* buffsz )
                 // Test
                 char testbuff[32] = {0,};
 
-                fread( testbuff, 1, 32, fp );
+                size_t rs = fread( testbuff, 1, 32, fp );
                 fseek( fp, 0, SEEK_SET );
 
                 const uchar jpghdr[3] = { 0xFF, 0xD8, 0xFF };
@@ -163,7 +163,7 @@ int testImageFile( const char* imgfp, uchar** buff,size_t* buffsz )
                     *buff = new uchar[ flen ];
                     if ( *buff != NULL )
                     {
-                        fread( *buff, 1, flen, fp );
+                        rs = fread( *buff, 1, flen, fp );
 
                         if( buffsz != NULL )
                         {
@@ -804,7 +804,7 @@ int main( int argc, char** argv )
         printf( "- Input any number and press ENTER to terminate, check memory state.\n" );
         fflush( stdout );
         unsigned meaningless = 0;
-        scanf( "- %d", &meaningless );
+        size_t rs = scanf( "%u", &meaningless );
     }
     
     return 0;
