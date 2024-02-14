@@ -47,7 +47,7 @@
 #include "debugtool.h"
 #endif
 
-//#define NEW_FAST_I_II_LAYERS
+#define NEW_FAST_I_II_LAYERS
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -109,10 +109,12 @@ void Convolution99x11( ImgF32& src, ImgF32* dst, const ConvKernel64_99 kernel99,
 
 // some utility functions here ...
 
-inline int intTrim(int a, int b, int c)
+inline unsigned uTrim( int64_t a, int64_t b, int64_t c )
 {
-    int buff[3] = {a, c, b};
-    return buff[ (int)(c > a) + (int)(c > b) ];
+    int64_t buff[3] = {a, c, b};
+    int64_t mpos = (c > a) + (c > b);
+    if ( mpos < 0 ) mpos = 0;
+    return buff[ mpos ];
 }
 
 void resetImgU8( ImgU8 &img )
@@ -524,29 +526,48 @@ void Convolution99x11( ImgF32& src, ImgF32* dst, const ConvKernel64_99 kernel99,
                                                  const ConvKernel21 kernel11, \
                                                  const ConvKernel2 bias11 )
 {
-    float result = 0.f;
-    int height   = src.height;
-    int width    = src.width;
-    int row      = 0;
-    int col      = 0;
-    float temp[CONV1_FILTERS] = {0.f};
-    // -- ignore initializing warning --
-    // macOS warning these two array not be initialized.
-    int rowf[width+8];
-    int colf[height+8];
-    // --------------------------------
+    float    result = 0.f;
+    unsigned height   = src.height;
+    unsigned width    = src.width;
+    unsigned row      = 0;
+    unsigned col      = 0;
+    float    temp[CONV1_FILTERS] = {0.f};
+
+#ifdef DEBUG
+    if ( ( height == 0 ) || ( width == 0 ) )
+    {
+        fprintf( stderr, 
+                 "Convolution99x11: Invalid image size, width = %u, height = %u\n",
+                 width, height );
+    }
+#endif
+
+    unsigned rowsz = width + 9;
+    unsigned* rowf = new unsigned[rowsz];
+    if ( rowf == NULL )
+        return;
+    unsigned colsz = height + 9;
+    unsigned* colf = new unsigned[colsz];
+    if ( colf == NULL )
+    {
+        delete[] rowf;
+        return;
+    }
+
+    memset( rowf, 0, sizeof( unsigned ) * ( width + 9 ) );
+    memset( colf, 0, sizeof( unsigned ) * ( height + 9 ) );
 
     /* Expand the src image */
     #pragma omp parallel for
     for (row = 0; row < height + 8; row++)
     {
-        rowf[row] = intTrim(0, height - 1, row - 4);
+        rowf[row] = uTrim(0, height - 1, row - 4);
     }
 
     #pragma omp parallel for
     for (col = 0; col < width + 8; col++)
     {
-        colf[col] = intTrim(0, width - 1, col - 4);
+        colf[col] = uTrim(0, width - 1, col - 4);
     }
 
     /* Complete the Convolution Step */
@@ -555,14 +576,14 @@ void Convolution99x11( ImgF32& src, ImgF32* dst, const ConvKernel64_99 kernel99,
     {
         for (col = 0; col < width; col++)
         {
-            for (int k = 0; k < CONV1_FILTERS; k++)
+            for (unsigned k = 0; k < CONV1_FILTERS; k++)
             {
                 /* Convolution */
                 temp[k] = 0.f;
 
-                for (int i = 0; i < 9; i++)
+                for (unsigned i = 0; i < 9; i++)
                 {
-                    for (int j = 0; j < 9; j++)
+                    for (unsigned j = 0; j < 9; j++)
                     {
                         temp[k] += kernel99[k][i][j] \
                                    * src.buff[ rowf[row + i] * width + colf[col + j] ];
@@ -576,11 +597,11 @@ void Convolution99x11( ImgF32& src, ImgF32* dst, const ConvKernel64_99 kernel99,
             }
 
             /* Process with each pixel */
-            for (int k = 0; k < CONV2_FILTERS; k++)
+            for (unsigned k = 0; k < CONV2_FILTERS; k++)
             {
                 result = 0.0;
 
-                for (int i = 0; i < CONV1_FILTERS; i++)
+                for (unsigned i = 0; i < CONV1_FILTERS; i++)
                 {
                     result += temp[i] * kernel11[k][i];
                 }
@@ -593,6 +614,9 @@ void Convolution99x11( ImgF32& src, ImgF32* dst, const ConvKernel64_99 kernel99,
             }
         }
     }
+
+    delete[] rowf;
+    delete[] colf;
 }
 
 int doSRCNN( const unsigned char* refbuff,
@@ -717,18 +741,30 @@ int doSRCNN( const unsigned char* refbuff,
 
     libsrcnn::ImgConv2Layers imgConv2;
 
-    libsrcnn::initImgConvLayers( &imgConv2[0],
+    libsrcnn::initImgConvLayers( imgConv2,
                                  imgResized[0].width,
                                  imgResized[0].height,
                                  CONV2_FILTERS );
+#ifdef DEBUG
+    printf( "initImgConvLayers, imgConv2 = %p, imgResized[0].width = %u, imgResized[0].height = %u, %u\n",
+            imgConv2, imgResized[0].width, imgResized[0].height, CONV2_FILTERS );
+    fflush( stdout );
+#endif /// of DEBUG
 
-    Convolution99x11( imgResized[0], imgConv2, weights_conv1_data, biases_conv1, weights_conv2_data, biases_conv2 );
+    Convolution99x11( imgResized[0], 
+                      imgConv2, weights_conv1_data, 
+                      biases_conv1, weights_conv2_data, 
+                      biases_conv2 );
 
     #ifdef DEBUG
+        printf("new fast I & II layers ..\n" );
+        fflush( stdout );
+
         for ( unsigned cnt=0; cnt<CONV2_FILTERS; cnt++ )
         {
             char strtmp[80] = {0};
-            sprintf( strtmp, "new_conv2_%u.png", cnt );
+            snprintf( strtmp, 80, "new_conv2_%u.png", cnt );
+            printf( "Writing %s\n", strtmp ); fflush( stdout );
             saveImgF32( &imgConv2[cnt], strtmp );
         }
     #endif
@@ -737,11 +773,10 @@ int doSRCNN( const unsigned char* refbuff,
 
     libsrcnn::ImgConv1Layers imgConv1;
 
-    libsrcnn::initImgConvLayers( &imgConv1[0],
+    libsrcnn::initImgConvLayers( imgConv1,
                                  imgResized[0].width,
                                  imgResized[0].height,
                                  CONV1_FILTERS );
-
     #pragma omp parallel for
     for ( unsigned cnt=0; cnt<CONV1_FILTERS; cnt++)
     {
@@ -755,7 +790,7 @@ int doSRCNN( const unsigned char* refbuff,
     for ( unsigned cnt=0; cnt<CONV1_FILTERS; cnt++ )
     {
         char strtmp[80] = {0};
-        sprintf( strtmp, "conv1_%u.png", cnt );
+        snprintf( strtmp, 80, "conv1_%u.png", cnt );
         saveImgF32( &imgConv1[cnt], strtmp );
     }
 #endif
@@ -764,11 +799,10 @@ int doSRCNN( const unsigned char* refbuff,
 
     libsrcnn::ImgConv2Layers imgConv2;
 
-    libsrcnn::initImgConvLayers( &imgConv2[0],
+    libsrcnn::initImgConvLayers( imgConv2,
                                  imgResized[0].width,
                                  imgResized[0].height,
                                  CONV2_FILTERS );
-
     #pragma omp parallel for
     for ( unsigned cnt=0; cnt<CONV2_FILTERS; cnt++ )
     {
@@ -782,8 +816,8 @@ int doSRCNN( const unsigned char* refbuff,
     for ( unsigned cnt=0; cnt<CONV2_FILTERS; cnt++ )
     {
         char strtmp[80] = {0};
-        sprintf( strtmp, "conv2_%u.png", cnt );
-        saveImgF32( &imgConv2[cnt], strtmp );
+        snprintf( strtmp, 80, "conv2_%u.png", cnt );
+        // saveImgF32( &imgConv2[cnt], strtmp );
     }
 #endif /// of DEBUG
 #endif /// of NEW_FAST_I_II_LAYERS

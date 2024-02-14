@@ -29,8 +29,9 @@ OBJS  = $(SRCS:$(SRC_PATH)/%.cpp=$(OBJ_PATH)/%.o)
 CFLAGS += -I$(SRC_PATH)
 CFLAGS += -DBUILDING_DLL
 CFLAGS += -DNO_OMP
+CFLAGS += -g3 -DDEBUG
 
-LFLAGS += -O2
+LFLAGS += -g3
 
 # architecture flag setting.
 # Darwin, kernel 20 (big sur) automatically using universal binary.
@@ -42,7 +43,8 @@ ifeq ($(KERNEL),Darwin)
     endif
 endif
 
-all: prepare $(BIN_PATH)/$(TARGET)
+#all: prepare $(BIN_PATH)/$(TARGET)
+all: static
 static: prepare $(BIN_PATH)/$(LIB_NM)$(LIB_EXT)
 
 prepare:
