@@ -117,6 +117,14 @@ inline unsigned uTrim( int64_t a, int64_t b, int64_t c )
     return buff[ mpos ];
 }
 
+inline unsigned uTrim32( uint32_t a, uint32_t b, uint32_t c )
+{
+    uint32_t buff[3] = {a, c, b};
+    uint32_t mpos = (c > a) + (c > b);
+    if ( mpos < 0 ) mpos = 0;
+    return buff[ mpos ];
+}
+
 void resetImgU8( ImgU8 &img )
 {
     img.width = 0;
@@ -542,11 +550,13 @@ void Convolution99x11( ImgF32& src, ImgF32* dst, const ConvKernel64_99 kernel99,
     }
 #endif
 
-    unsigned rowsz = width + 9;
+    // allocation required by macOS clang compatibility.
+    unsigned rowsz = height + 9;
     unsigned* rowf = new unsigned[rowsz];
     if ( rowf == NULL )
         return;
-    unsigned colsz = height + 9;
+
+    unsigned colsz = width + 9;
     unsigned* colf = new unsigned[colsz];
     if ( colf == NULL )
     {
@@ -554,24 +564,21 @@ void Convolution99x11( ImgF32& src, ImgF32* dst, const ConvKernel64_99 kernel99,
         return;
     }
 
-    memset( rowf, 0, sizeof( unsigned ) * ( width + 9 ) );
-    memset( colf, 0, sizeof( unsigned ) * ( height + 9 ) );
-
     /* Expand the src image */
     #pragma omp parallel for
-    for (row = 0; row < height + 8; row++)
+    for (row = 0; row < rowsz-1; row++)
     {
-        rowf[row] = uTrim(0, height - 1, row - 4);
+        rowf[row] = uTrim32(0, height - 1, row - 4);
     }
 
     #pragma omp parallel for
-    for (col = 0; col < width + 8; col++)
+    for (col = 0; col < colsz-1; col++)
     {
-        colf[col] = uTrim(0, width - 1, col - 4);
+        colf[col] = uTrim32(0, width - 1, col - 4);
     }
 
     /* Complete the Convolution Step */
-    #pragma omp parallel for private(col,temp) shared(dst)
+    /* TODO : need to be optimized with OpenMP */
     for (row = 0; row < height; row++)
     {
         for (col = 0; col < width; col++)
@@ -585,15 +592,15 @@ void Convolution99x11( ImgF32& src, ImgF32* dst, const ConvKernel64_99 kernel99,
                 {
                     for (unsigned j = 0; j < 9; j++)
                     {
-                        temp[k] += kernel99[k][i][j] \
-                                   * src.buff[ rowf[row + i] * width + colf[col + j] ];
+                        temp[k] += (float)(kernel99[k][i][j]) \
+                                   * float(src.buff[ rowf[row + i] * width + colf[col + j] ]);
                     }
                 }
 
                 temp[k] += bias99[k];
 
                 /* Threshold */
-                temp[k] = (temp[k] < 0) ? 0 : temp[k];
+                temp[k] = (temp[k] < 0.f) ? 0.f : temp[k];
             }
 
             /* Process with each pixel */
@@ -608,7 +615,7 @@ void Convolution99x11( ImgF32& src, ImgF32* dst, const ConvKernel64_99 kernel99,
                 result += bias11[k];
 
                 /* Threshold */
-                result = (result < 0) ? 0 : result;
+                result = (result < 0.f) ? 0.f : result;
 
                 dst[k].buff[row * width + col] = result;
             }
@@ -751,15 +758,20 @@ int doSRCNN( const unsigned char* refbuff,
     fflush( stdout );
 #endif /// of DEBUG
 
-    Convolution99x11( imgResized[0], 
+    /* PERFORMANCE ISSUE !!
+       Convolution99x11 saves memory than separated 99 and 11 convolution,
+       But no way to apply OpenMP MPI for now.
+    */
+    Convolution99x11( imgResized[0],
                       imgConv2, weights_conv1_data, 
                       biases_conv1, weights_conv2_data, 
                       biases_conv2 );
 
     #ifdef DEBUG
-        printf("new fast I & II layers ..\n" );
+        printf("new memory saving I & II layers ..\n" );
         fflush( stdout );
 
+        #pragma omp parallel for
         for ( unsigned cnt=0; cnt<CONV2_FILTERS; cnt++ )
         {
             char strtmp[80] = {0};

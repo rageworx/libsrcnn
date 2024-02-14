@@ -205,9 +205,9 @@ bool savetopng( Fl_RGB_Image* imgcached, const char* fpath )
         {
             if ( setjmp( png_jmpbuf( (png_ptr) ) ) == 0 )
             {
-                int mx = imgcached->w();
-                int my = imgcached->h();
-                int pd = imgcached->d();
+                png_uint_32 mx = imgcached->w();
+                png_uint_32 my = imgcached->h();
+                png_uint_32 pd = imgcached->d();
                 // defualt PNG type is RGB 
                 int ct = PNG_COLOR_TYPE_RGB;
                 if ( pd == 1 )
@@ -233,18 +233,18 @@ bool savetopng( Fl_RGB_Image* imgcached, const char* fpath )
 
                 png_write_info( png_ptr, info_ptr );
 
-                row = new png_byte[ imgcached->w() ];
+                row = new png_byte[ mx * pd ];
 
                 if ( row != NULL )
                 {
                     const char* buf = imgcached->data()[0];
-                    int bque = 0;
+                    png_uint_32 bque = 0;
 
-                    for( int y=0; y<my; y++ )
+                    for( png_uint_32 y=0; y<my; y++ )
                     {
-                        for( int x=0; x<mx; x++ )
+                        for( png_uint_32 x=0; x<mx; x++ )
                         {
-                            for( int dd=0; dd<pd; dd++ )
+                            for( png_uint_32 dd=0; dd<pd; dd++ )
                             {
                                 row[ (x*pd) + dd ] = buf[ bque + dd ];
                             }

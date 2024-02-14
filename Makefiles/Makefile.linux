@@ -26,11 +26,16 @@ OBJS  = $(SRCS:$(SRC_PATH)/%.cpp=$(OBJ_PATH)/%.o)
 CFLAGS += -fPIC
 CFLAGS += -I$(SRC_PATH)
 CFLAGS += -DBUILDING_DLL
+## -- some debugging features --
+#CFLAGS += -g3 -DDEBUG
+#CFLAGS += -DDEBUG
+## -----------------------------
 
 LFLAGS += -fopenmp
 LFLAGS += -O2 -s
 
-all: prepare $(BIN_PATH)/$(TARGET)
+#all: prepare $(BIN_PATH)/$(TARGET)
+all: static
 static: prepare $(BIN_PATH)/$(LIB_NM)$(LIB_EXT)
 
 prepare:
