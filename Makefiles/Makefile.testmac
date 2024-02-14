@@ -35,7 +35,7 @@ DEFS  = -DFORTESTINGBIN -DLIBSRCNNSTATIC -DNO_OMP
 
 # Compiler optiops 
 COPTS  = 
-COPTS += -ffast-math -fexceptions -O3
+COPTS += -ffast-math -fexceptions -O3 -DDEBUG
 COPTS += $(FLTKCFG_CXX)
 
 # CC FLAG
@@ -50,7 +50,6 @@ CFLAGS += $(COPTS)
 LFLAGS  = -L$(LIB_PATH)
 LFLAGS += -L../fl_imgtk/lib
 LFLAGS += -lsrcnn
-LFLAGS += -lpthread
 LFLAGS += -lfl_imgtk
 LFLAGS += $(FLTKCFG_LFG)
 
@@ -65,8 +64,10 @@ ifeq ($(KERNEL),Darwin)
 endif
 
 # source to obj, automatic.
-SRCS = $(SRC_PATH)/test.cpp $(SRC_PATH)/tick.cpp
-OBJS = $(SRCS:$(SRC_PATH)/%.cpp=$(TARGET_OBJ)/%.o)
+SRCS  = $(SRC_PATH)/test.cpp 
+SRCS += $(SRC_PATH)/tick.cpp
+SRCS += $(SRC_PATH)/debugtool.cpp
+OBJS  = $(SRCS:$(SRC_PATH)/%.cpp=$(TARGET_OBJ)/%.o)
 
 .PHONY: prepare clean
 

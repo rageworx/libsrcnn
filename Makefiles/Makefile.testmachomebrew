@@ -42,6 +42,7 @@ DEFS  = -DFORTESTINGBIN
 # Compiler optiops 
 COPTS  = 
 COPTS += -ffast-math -fexceptions -O3
+COPTS += -DDEBUG
 COPTS += $(FLTKCFG_CXX)
 
 # CC FLAG
@@ -63,7 +64,7 @@ LFLAGS += -lomp
 LFLAGS += $(FLTKCFG_LFG)
 
 # source to obj, automatic.
-SRCS = $(SRC_PATH)/test.cpp $(SRC_PATH)/tick.cpp
+SRCS = $(SRC_PATH)/test.cpp $(SRC_PATH)/tick.cpp $(SRC_PATH)/debugtool.cpp
 OBJS = $(SRCS:$(SRC_PATH)/%.cpp=$(TARGET_OBJ)/%.o)
 
 .PHONY: prepare clean

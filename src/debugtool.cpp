@@ -1,11 +1,12 @@
-#ifdef DEBUG
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <string>
 #include <algorithm>
 
+#ifdef USE_OMP
 #include <omp.h>
+#endif /// of USE_OMP
 
 #include "debugtool.h"
 
@@ -34,106 +35,104 @@ using namespace std;
 
 typedef struct
 {
-    unsigned       width;
-    unsigned       height;
-    unsigned       depth;
-    unsigned char* buff;
-}ImgU8;
+    unsigned width;
+    unsigned height;
+    unsigned depth;
+    unsigned char *buff;
+} ImgU8;
 
 typedef struct
 {
-    unsigned       width;
-    unsigned       height;
-    unsigned       depth;
-    float*         buff;
-}ImgF32;
+    unsigned width;
+    unsigned height;
+    unsigned depth;
+    float *buff;
+} ImgF32;
 
 typedef struct
 {
-    ImgF32      Y;
-    ImgF32      Cb;
-    ImgF32      Cr;
-}ImgYCbCr;
+    ImgF32 Y;
+    ImgF32 Cb;
+    ImgF32 Cr;
+} ImgYCbCr;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-extern bool convImage( Fl_RGB_Image* src, Fl_RGB_Image* &dst );
-extern bool savetocolorpng( Fl_RGB_Image* imgcached, const char* fpath );
+extern bool convImage(Fl_RGB_Image *src, Fl_RGB_Image *&dst);
+extern bool savetopng(Fl_RGB_Image *imgcached, const char *fpath);
 
 ////////////////////////////////////////////////////////////////////////////////
 
-bool convertF32toU8( ImgF32* src, ImgU8 &dst )
+bool convertF32toU8(ImgF32 *src, ImgU8 &dst)
 {
-    if ( src == NULL )
+    if (src == NULL)
         return false;
 
     // don't care depth ...
     unsigned srcsz = src->width * src->height;
 
-    dst.width  = src->width;
+    dst.width = src->width;
     dst.height = src->height;
-    dst.buff   = new unsigned char[ srcsz ];
+    dst.buff = new unsigned char[srcsz];
 
-    if ( dst.buff == NULL )
+    if (dst.buff == NULL)
         return false;
 
     // get max and min ...
     float fMin = 1.4013e-45f;
     float fMax = 0.f;
 
-    for( unsigned cnt=0; cnt<srcsz; cnt++ )
+    for (unsigned cnt = 0; cnt < srcsz; cnt++)
     {
-        if ( src->buff[ cnt ] > fMax )
+        if (src->buff[cnt] > fMax)
         {
-            fMax = src->buff[ cnt ];
+            fMax = src->buff[cnt];
         }
-        else
-        if ( src->buff[ cnt ] < fMin )
+        else if (src->buff[cnt] < fMin)
         {
-            fMin = src->buff[ cnt ];
+            fMin = src->buff[cnt];
         }
     }
 
 #ifdef DEBUG_COLORSPACE
-    if ( fMin < 0.f )
+    if (fMin < 0.f)
     {
-        printf( "Warning @ convertF32toU8(), Min float under zero : %.2f\n",
-                fMin );
-        fflush( stdout );
+        printf("Warning @ convertF32toU8(), Min float under zero : %.2f\n",
+               fMin);
+        fflush(stdout);
     }
 
-    printf( "fMin:fMax=%.2f:%.2f", fMin, fMax );
+    printf("fMin:fMax=%.2f:%.2f", fMin, fMax);
 #endif
 
-    #pragma omp parallel for
-    for( unsigned cnt=0; cnt<srcsz; cnt++ )
+#pragma omp parallel for
+    for (unsigned cnt = 0; cnt < srcsz; cnt++)
     {
-        dst.buff[ cnt ] = ( unsigned char ) \
-                          ( ( src->buff[ cnt ] / fMax ) * 255.f );
+        dst.buff[cnt] = (unsigned char)((src->buff[cnt] / fMax) * 255.f);
     }
 
     return true;
 }
 
-void saveImgU8( void* img, const char* fname )
+void saveImgU8(void *img, const char *fname)
 {
-    if ( ( img == NULL ) || ( fname == NULL ) )
+    if ((img == NULL) || (fname == NULL))
         return;
 
-    ImgU8* refimg = (ImgU8*)img;
+    ImgU8 *refimg = (ImgU8 *)img;
 
-    Fl_RGB_Image* imgTmp = new Fl_RGB_Image( refimg->buff,
-                                             refimg->width,
-                                             refimg->height,
-                                             refimg->depth );
-    if ( imgTmp != NULL )
+    Fl_RGB_Image *imgTmp = new Fl_RGB_Image(refimg->buff,
+                                            refimg->width,
+                                            refimg->height,
+                                            refimg->depth);
+    if (imgTmp != NULL)
     {
-        Fl_RGB_Image* imgConv = NULL;
-        if ( convImage( imgTmp, imgConv ) == true )
+        Fl_RGB_Image *imgConv = NULL;
+        if (convImage(imgTmp, imgConv) == true)
         {
-            savetocolorpng( imgConv, fname );
+            savetopng(imgConv, fname);
 
-            fl_imgtk::discard_user_rgb_image( imgConv );
+            fl_imgtk::discard_user_rgb_image(imgConv);
         }
 
         // don't use discard_user ... () memory reference error.
@@ -141,46 +140,46 @@ void saveImgU8( void* img, const char* fname )
     }
 }
 
-void saveImgF32( void* img, const char* fname )
+void saveImgF32(void *img, const char *fname)
 {
-    if ( ( img == NULL ) || ( fname == NULL ) )
+    if ((img == NULL) || (fname == NULL))
         return;
 
-    ImgF32* refimg = (ImgF32*)img;
-    ImgU8 imgTmp = {0,0,1,NULL};
+    ImgF32 *refimg = (ImgF32 *)img;
+    ImgU8 imgTmp = {0, 0, 1, NULL};
 
-    if ( convertF32toU8( refimg, imgTmp ) == true )
+    if (convertF32toU8(refimg, imgTmp) == true)
     {
-        saveImgU8( &imgTmp, fname );
+        saveImgU8(&imgTmp, fname);
 
         delete[] imgTmp.buff;
     }
 }
 
-void saveImgYCbCr( void* img, const char* fnameprefix )
+void saveImgYCbCr(void *img, const char *fnameprefix)
 {
-    if ( ( img == NULL ) || ( fnameprefix == NULL ) )
+    if ((img == NULL) || (fnameprefix == NULL))
         return;
 
-    ImgYCbCr* refimg = (ImgYCbCr*)img;
+    ImgYCbCr *refimg = (ImgYCbCr *)img;
 
     char strFnMap[1024] = {0};
 
     // Write Y
-    printf("saveImgYCbCr(%s), Y:", fnameprefix ); fflush( stdout );
-    sprintf( strFnMap, "%s_Y.png", fnameprefix );
-    saveImgF32( &refimg->Y, strFnMap );
+    printf("saveImgYCbCr(%s), Y:", fnameprefix);
+    fflush(stdout);
+    snprintf(strFnMap, 1024, "%s_Y.png", fnameprefix);
+    saveImgF32(&refimg->Y, strFnMap);
 
     // Write Cb
-    printf("Cb:" ); fflush( stdout );
-    sprintf( strFnMap, "%s_Cb.png", fnameprefix );
-    saveImgF32( &refimg->Cb, strFnMap );
+    printf("Cb:");
+    fflush(stdout);
+    snprintf(strFnMap, 1024, "%s_Cb.png", fnameprefix);
+    saveImgF32(&refimg->Cb, strFnMap);
 
     // Write Cr
-    printf("Cr:" ); fflush( stdout );
-    sprintf( strFnMap, "%s_Cr.png", fnameprefix );
-    saveImgF32( &refimg->Cr, strFnMap );
-
+    printf("Cr:");
+    fflush(stdout);
+    snprintf(strFnMap, 1024, "%s_Cr.png", fnameprefix);
+    saveImgF32(&refimg->Cr, strFnMap);
 }
-
-#endif /// of DEBUG
