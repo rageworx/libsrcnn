@@ -46,8 +46,7 @@ ifeq ($(KERNEL),Darwin)
     endif
 endif
 
-#all: prepare $(BIN_PATH)/$(TARGET)
-all: static
+all: prepare $(BIN_PATH)/$(TARGET)
 static: prepare $(BIN_PATH)/$(LIB_NM)$(LIB_EXT)
 
 prepare:

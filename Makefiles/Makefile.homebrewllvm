@@ -51,7 +51,7 @@ LFLAGS += "-lstdc++"
 
 .PHONY: all static prepare test
 
-all: prepare static
+all: prepare dylib
 static: prepare $(BIN_PATH)/$(LIB_NM)$(LIB_EXT)
 dylib: prepare $(BIN_PATH)/$(LIB_NM)$(SO_EXT)
 
