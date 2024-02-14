@@ -28,6 +28,7 @@ DEFS  = -DFORTESTINGBIN -DLIBSRCNNSTATIC -DDEBUG
 # Compiler optiops 
 COPTS  = 
 COPTS += -ffast-math -fexceptions -fopenmp -O3 -s
+#COPTS += -fopenmp -g3
 COPTS += $(FLTKCFG_CXX)
 
 # CC FLAG

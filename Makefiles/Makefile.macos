@@ -30,7 +30,11 @@ CFLAGS += -I$(SRC_PATH)
 CFLAGS += -DBUILDING_DLL
 CFLAGS += -DNO_OMP
 
-LFLAGS += -O2
+# -- for debugging 
+#CFLAGS += -g3 -DDEBUG
+
+# -- for debugging
+#LFLAGS += -g3
 
 # architecture flag setting.
 # Darwin, kernel 20 (big sur) automatically using universal binary.

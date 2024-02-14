@@ -4,10 +4,10 @@
 #   - brew install libomp
 # by Raphael Kim
 
-CPP = /usr/local/opt/llvm/bin/clang
-CXX = /usr/local/opt/llvm/bin/clang
-AR  = /usr/local/opt/llvm/bin/llvm-ar
-RL  = /usr/local/opt/llvm/bin/llvm-ranlib
+CPP = $(HOMEBREW_PREFIX)/opt/llvm/bin/clang
+CXX = $(HOMEBREW_PREFIX)/opt/llvm/bin/clang
+AR  = $(HOMEBREW_PREFIX)/opt/llvm/bin/llvm-ar
+RL  = $(HOMEBREW_PREFIX)/opt/llvm/bin/llvm-ranlib
 
 # sense macOS kernel type
 KERNEL    = $(shell uname -s)
@@ -32,6 +32,8 @@ CFLAGS += -I$(SRC_PATH)
 #CFLAGS += -DLIBSRCNNSTATIC
 
 CFLAGS += -O2 -fopenmp
+# -- for debugging 
+#CFLAGS += -DDEBUG
 
 # homebrew llvm configuration
 LFLAGS += "-L/usr/local/opt/llvm/lib"
@@ -49,7 +51,7 @@ LFLAGS += "-lstdc++"
 
 .PHONY: all static prepare test
 
-all: prepare static
+all: prepare dylib
 static: prepare $(BIN_PATH)/$(LIB_NM)$(LIB_EXT)
 dylib: prepare $(BIN_PATH)/$(LIB_NM)$(SO_EXT)
 

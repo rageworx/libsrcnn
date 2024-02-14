@@ -137,7 +137,7 @@ int testImageFile( const char* imgfp, uchar** buff,size_t* buffsz )
                 // Test
                 char testbuff[32] = {0,};
 
-                fread( testbuff, 1, 32, fp );
+                size_t rs = fread( testbuff, 1, 32, fp );
                 fseek( fp, 0, SEEK_SET );
 
                 const uchar jpghdr[3] = { 0xFF, 0xD8, 0xFF };
@@ -163,7 +163,7 @@ int testImageFile( const char* imgfp, uchar** buff,size_t* buffsz )
                     *buff = new uchar[ flen ];
                     if ( *buff != NULL )
                     {
-                        fread( *buff, 1, flen, fp );
+                        rs = fread( *buff, 1, flen, fp );
 
                         if( buffsz != NULL )
                         {
@@ -180,12 +180,13 @@ int testImageFile( const char* imgfp, uchar** buff,size_t* buffsz )
     return reti;
 }
 
-bool savetomonopng( Fl_RGB_Image* imgcached, const char* fpath )
+bool savetopng( Fl_RGB_Image* imgcached, const char* fpath )
 {
     if ( imgcached == NULL )
         return false;
 
-    if ( imgcached->d() != 1 )
+    // prevent from wrong or unsupoorted image.
+    if ( ( imgcached->w() == 0 ) || ( imgcached->h() == 0 )  || ( imgcached->d() == 2 ) )
         return false;
 
     FILE* fp = fopen( fpath, "wb" );
@@ -204,84 +205,16 @@ bool savetomonopng( Fl_RGB_Image* imgcached, const char* fpath )
         {
             if ( setjmp( png_jmpbuf( (png_ptr) ) ) == 0 )
             {
-                int mx = imgcached->w();
-                int my = imgcached->h();
-                int pd = 3;
-
-                png_init_io( png_ptr, fp );
-                png_set_IHDR( png_ptr,
-                              info_ptr,
-                              mx,
-                              my,
-                              8,
-                              PNG_COLOR_TYPE_GRAY,
-                              PNG_INTERLACE_NONE,
-                              PNG_COMPRESSION_TYPE_BASE,
-                              PNG_FILTER_TYPE_BASE);
-
-                png_write_info( png_ptr, info_ptr );
-
-                row = (png_bytep)malloc( imgcached->w() * sizeof( png_byte ) );
-                if ( row != NULL )
-                {
-                    const char* buf = imgcached->data()[0];
-                    int bque = 0;
-
-                    for( int y=0; y<my; y++ )
-                    {
-						memcpy( row, &buf[bque], mx );
-						bque += mx;
-
-                        png_write_row( png_ptr, row );
-                    }
-
-                    png_write_end( png_ptr, NULL );
-
-                    fclose( fp );
-
-                    free(row);
-                }
-
-                png_free_data(png_ptr, info_ptr, PNG_FREE_ALL, -1);
-                png_destroy_write_struct(&png_ptr, (png_infopp)NULL);
-
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
-
-bool savetocolorpng( Fl_RGB_Image* imgcached, const char* fpath )
-{
-    if ( imgcached == NULL )
-        return false;
-
-    if ( imgcached->d() < 3 )
-        return false;
-
-    FILE* fp = fopen( fpath, "wb" );
-    if ( fp == NULL )
-        return false;
-
-    png_structp png_ptr     = NULL;
-    png_infop   info_ptr    = NULL;
-    png_bytep   row         = NULL;
-
-    png_ptr = png_create_write_struct( PNG_LIBPNG_VER_STRING, NULL, NULL, NULL );
-    if ( png_ptr != NULL )
-    {
-        info_ptr = png_create_info_struct( png_ptr );
-        if ( info_ptr != NULL )
-        {
-            if ( setjmp( png_jmpbuf( (png_ptr) ) ) == 0 )
-            {
-                int mx = imgcached->w();
-                int my = imgcached->h();
-                int pd = imgcached->d();
-
+                png_uint_32 mx = imgcached->w();
+                png_uint_32 my = imgcached->h();
+                png_uint_32 pd = imgcached->d();
+                // defualt PNG type is RGB 
                 int ct = PNG_COLOR_TYPE_RGB;
+                if ( pd == 1 )
+                {
+                    ct= PNG_COLOR_TYPE_GRAY;
+                }
+                else
                 if ( pd == 4 )
                 {
                     ct = PNG_COLOR_TYPE_RGBA;
@@ -300,17 +233,18 @@ bool savetocolorpng( Fl_RGB_Image* imgcached, const char* fpath )
 
                 png_write_info( png_ptr, info_ptr );
 
-                row = (png_bytep)malloc( imgcached->w() * sizeof( png_byte ) * pd );
+                row = new png_byte[ mx * pd ];
+
                 if ( row != NULL )
                 {
                     const char* buf = imgcached->data()[0];
-                    int bque = 0;
+                    png_uint_32 bque = 0;
 
-                    for( int y=0; y<my; y++ )
+                    for( png_uint_32 y=0; y<my; y++ )
                     {
-                        for( int x=0; x<mx; x++ )
+                        for( png_uint_32 x=0; x<mx; x++ )
                         {
-                            for( int dd=0; dd<pd; dd++ )
+                            for( png_uint_32 dd=0; dd<pd; dd++ )
                             {
                                 row[ (x*pd) + dd ] = buf[ bque + dd ];
                             }
@@ -325,7 +259,7 @@ bool savetocolorpng( Fl_RGB_Image* imgcached, const char* fpath )
 
                     fclose( fp );
 
-                    free(row);
+                    delete[] row;
                 }
 
                 png_free_data(png_ptr, info_ptr, PNG_FREE_ALL, -1);
@@ -742,7 +676,7 @@ int main( int argc, char** argv )
                 {
                     printf( "- Saving resized result to %s ... ", file_dst.c_str() );
                     
-                    if ( savetocolorpng( imgDump, file_dst.c_str() ) == true )
+                    if ( savetopng( imgDump, file_dst.c_str() ) == true )
                     {
                         printf( "Ok.\n" );
                     }
@@ -771,7 +705,7 @@ int main( int argc, char** argv )
                 {
                     printf( "- Saving convolution result to %s ... ", file_cov.c_str() );
                     
-                    if ( savetomonopng( imgDump, file_cov.c_str() ) == true )
+                    if ( savetopng( imgDump, file_cov.c_str() ) == true )
                     {
                         printf( "Ok.\n" );
                     }
@@ -804,7 +738,7 @@ int main( int argc, char** argv )
         printf( "- Input any number and press ENTER to terminate, check memory state.\n" );
         fflush( stdout );
         unsigned meaningless = 0;
-        scanf( "- %d", &meaningless );
+        size_t rs = scanf( "%u", &meaningless );
     }
     
     return 0;

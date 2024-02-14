@@ -165,10 +165,10 @@ unsigned FRAWResizeEngine::scale( const float* src, unsigned src_width, unsigned
     if ( src == NULL)
         return 0;
 
-    if ( ( src_width == 0 ) || ( src_width == 0 ) || ( dst_width == 0 ) || ( dst_height == 0 ) )
+    if ( ( src_width == 0 ) || ( src_height == 0 ) || ( dst_width == 0 ) || ( dst_height == 0 ) )
         return 0;
 
-    unsigned imgsz = dst_width * dst_height;
+    size_t imgsz = dst_width * dst_height;
 
     if ( *dst != NULL )
     {
@@ -186,7 +186,7 @@ unsigned FRAWResizeEngine::scale( const float* src, unsigned src_width, unsigned
     {
         if ( *dst != NULL )
         {
-            unsigned cpsz = src_width * src_height * sizeof( unsigned short );
+            size_t cpsz = src_width * src_height * sizeof( unsigned short );
             memcpy( *dst, src, cpsz );
             return cpsz;
         }
