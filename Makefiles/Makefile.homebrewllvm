@@ -56,7 +56,7 @@ LFLAGS += -L/opt/homebrew/opt/libpng/lib
 CFLAGS += -I/opt/homebrew/opt/libpng/include
 
 # appends for llvm
-LFLAGS += "-lstdc++"
+LFLAGS += -stdlib=libc++
 
 .PHONY: all static prepare test
 
@@ -87,4 +87,18 @@ $(BIN_PATH)/$(LIB_NM)$(LIB_EXT): $(OBJS)
 
 $(OUT_PATH)/$(BIN_NM): $(SRC_PATH)/srcnn.cpp $(SRC_PATH)/tick.cpp
 	@echo "Linking $@ ..."
-	@$(CXX) $(CFLAGS) $(CPUOPT) -Ires -L$(BIN_PATH) -l$(BIN_NM) $(LFLAGS) -ljpeg -lpng $^ -o $@
+	@$(CXX) $(CFLAGS) $(CPUOPT) -Ires -L$(BIN_PATH) -l$(BIN_NM) $(LFLAGS) -ljpeg -lpng -lc++ $^ -o $@
+	@echo "Copying external dylibs ...."
+	@cp -f /opt/homebrew/opt/jpeg/lib/libjpeg.9.dylib $(OUT_PATH)
+	@cp -f /opt/homebrew/opt/libpng/lib/libpng16.16.dylib $(OUT_PATH)
+	@cp -f /opt/homebrew/opt/llvm/lib/libomp.dylib $(OUT_PATH)
+	@cp -f 	/opt/homebrew/opt/llvm/lib/c++/libc++.1.dylib $(OUT_PATH)
+	@cp -f 	/opt/homebrew/opt/llvm/lib/c++/libc++abi.1.dylib $(OUT_PATH)
+	@cp -f 	/opt/homebrew/opt/llvm/lib/libunwind.1.dylib $(OUT_PATH)
+	@echo "Processing name tools ..."
+	@install_name_tool -change /opt/homebrew/opt/jpeg/lib/libjpeg.9.dylib libjpeg.9.dylib $@
+	@install_name_tool -change /opt/homebrew/opt/libpng/lib/libpng16.16.dylib libpng16.16.dylib $@
+	@install_name_tool -change /opt/homebrew/opt/llvm/lib/libomp.dylib libomp.dylib $@
+	@install_name_tool -change /opt/homebrew/opt/llvm/lib/c++/libc++.1.dylib libc++.1.dylib $@
+	@install_name_tool -change /opt/homebrew/opt/llvm/lib/libunwind.1.dylib libunwind.1.dylib $@
+
