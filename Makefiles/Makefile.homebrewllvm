@@ -20,62 +20,71 @@ MACOSMINV = 11.0
 SRC_PATH = src
 OBJ_PATH = obj
 BIN_PATH = lib
-SO_EXT   = .dylib
+OUT_PATH = bin
 LIB_EXT  = .a
 LIB_NM   = libsrcnn
+BIN_NM   = srcnn
 
 SRCS  = $(SRC_PATH)/frawscale.cpp
 SRCS += $(SRC_PATH)/libsrcnn.cpp
 OBJS  = $(SRCS:$(SRC_PATH)/%.cpp=$(OBJ_PATH)/%.o)
 
 CFLAGS += -I$(SRC_PATH)
-#CFLAGS += -DLIBSRCNNSTATIC
+CFLAGS += -DLIBSRCNNSTATIC
 
-CFLAGS += -O2 -fopenmp
+# -- using homebrew llvm with OpenMP MPI.
+CFLAGS += -O3 -fopenmp
 # -- for debugging 
+#CFLAGS += -g3 -fopenmp
 #CFLAGS += -DDEBUG
 
 # homebrew llvm configuration
-LFLAGS += "-L/usr/local/opt/llvm/lib"
-LFLAGS += "-L/usr/local/opt/llvm/lib/c++"
-LFLAGS += "-Wl,-rpath,/usr/local/opt/llvm/lib/c++"
-CFLAGS += "-I/usr/local/opt/llvm/include"
-CPUOPT = ""
+LFLAGS += -L/opt/homebrew/opt/llvm/lib
+LFLAGS += -L/opt/homebrew/opt/llvm/lib/c++
+CPUOPT =
 
 # OpenMP ( install libomp first with homebrew )
-LFLAGS += "-L/usr/local/opt/libomp/lib"
-CFLAGS += "-I/usr/local/opt/libomp/include"
+LFLAGS += -L/opt/homebrew/opt/libomp/lib
+CFLAGS += -I/opt/homebrew/opt/libomp/include
+
+# homebrew libjpeg ( install it )
+LFLAGS += -L/opt/homebrew/opt/jpeg/lib
+CFLAGS += -I/opt/homebrew/opt/jpeg/include
+
+# homebrew libpng ( install it )
+LFLAGS += -L/opt/homebrew/opt/libpng/lib
+CFLAGS += -I/opt/homebrew/opt/libpng/include
 
 # appends for llvm
 LFLAGS += "-lstdc++"
 
 .PHONY: all static prepare test
 
-all: prepare dylib
+all: prepare static srcnn_bin
 static: prepare $(BIN_PATH)/$(LIB_NM)$(LIB_EXT)
-dylib: prepare $(BIN_PATH)/$(LIB_NM)$(SO_EXT)
+srcnn_bin: prepare $(OUT_PATH)/$(BIN_NM)
 
 prepare:
 	@mkdir -p $(OBJ_PATH)
 	@mkdir -p $(BIN_PATH)
+	@mkdir -p $(OUT_PATH)
 
 clean:
 	@echo "Cleaning ..."
 	@rm -rf $(OBJ_PATH)/*.o
 	@rm -rf $(OBJ_PATH)/test/*.o
-	@rm -rf $(BIN_PATH)/$(LIB_NM)$(SO_EXT)
 	@rm -rf $(BIN_PATH)/$(LIB_NM)$(LIB_EXT)
+	@rm -rf $(OUT_PATH)/$(BIN_NM)
 
 $(OBJS): $(OBJ_PATH)/%.o: $(SRC_PATH)/%.cpp
 	@echo "Compiling $< ..."
 	@$(CXX) $(CFLAGS) $(CPUOPT) -c $< -o $@
 
-$(BIN_PATH)/$(LIB_NM)$(SO_EXT): $(OBJS)
-	@echo "Linking $@ ..."
-	@$(CXX) -shared $^ $(CFLAGS) $(CPUOPT) $(LFLAGS) -o $@
-	@cp -rf $(SRC_PATH)/libsrcnn.h $(BIN_PATH)
-
 $(BIN_PATH)/$(LIB_NM)$(LIB_EXT): $(OBJS)
 	@echo "Generating $@ ..."
 	@$(AR) -cr $@ $^
 	@$(RL) $@
+
+$(OUT_PATH)/$(BIN_NM): $(SRC_PATH)/srcnn.cpp $(SRC_PATH)/tick.cpp
+	@echo "Linking $@ ..."
+	@$(CXX) $(CFLAGS) $(CPUOPT) -Ires -L$(BIN_PATH) -l$(BIN_NM) $(LFLAGS) -ljpeg -lpng $^ -o $@
