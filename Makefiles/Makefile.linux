@@ -9,10 +9,12 @@ RL  = ranlib
 SRC_PATH = src
 OBJ_PATH = obj
 BIN_PATH = lib
+OUT_PATH = bin
 SO_EXT   = .so
 LIB_EXT  = .a
 LIB_NM   = libsrcnn
 TARGET   = $(LIB_NM)$(SO_EXT)
+BIN_NM   = srcnn
 
 INST_L_PATH = /usr/local/lib
 INST_H_PATH = /usr/local/include
@@ -25,7 +27,6 @@ OBJS  = $(SRCS:$(SRC_PATH)/%.cpp=$(OBJ_PATH)/%.o)
 # remove this option if it cuased to build error.
 CFLAGS += -fPIC
 CFLAGS += -I$(SRC_PATH)
-CFLAGS += -DBUILDING_DLL
 ## -- some debugging features --
 #CFLAGS += -g3 -DDEBUG
 #CFLAGS += -DDEBUG
@@ -34,18 +35,20 @@ CFLAGS += -DBUILDING_DLL
 LFLAGS += -fopenmp
 LFLAGS += -O2 -s
 
-#all: prepare $(BIN_PATH)/$(TARGET)
 all: static
 static: prepare $(BIN_PATH)/$(LIB_NM)$(LIB_EXT)
+srcnn_bin: prepare $(OUT_PATH)/$(BIN_NM)
 
 prepare:
 	@mkdir -p $(OBJ_PATH)
 	@mkdir -p $(BIN_PATH)
+	@mkdir -p $(OUT_PATH)
 
 clean:
 	@rm -rf $(OBJ_PATH)/*.o
 	@rm -rf $(BIN_PATH)/$(TARGET)
 	@rm -rf $(BIN_PATH)/$(LIB_NM)$(LIB_EXT)
+	@rm -rf $(OUT_PATH)/$(BIN_NM)
 
 $(OBJS): $(OBJ_PATH)/%.o: $(SRC_PATH)/%.cpp
 	@echo "Compiling $< ..."
@@ -72,3 +75,16 @@ uninstall: $(INST_L_PATH)/$(TARGET)
 	@rm -rf $<
 	@rm -rf $(INST_H_PATH)/libsrcnn.h
 	@ldconfig
+
+$(OBJ_PATH)/tick.o: $(SRC_PATH)/tick.cpp
+	@echo "Compiling $< ..."
+	@$(CXX) $(CFLAGS) $(LFLAGS) -c $< -o $@
+
+$(OBJ_PATH)/srcnn.o: $(SRC_PATH)/srcnn.cpp
+	@echo "Compiling $< ..."
+	@$(CXX) $(CFLAGS) -Ires $(LFLAGS) -c $< -o $@
+
+$(OUT_PATH)/$(BIN_NM): $(OBJ_PATH)/tick.o $(OBJ_PATH)/srcnn.o
+	@echo "Linking ELF $@ ..."
+	@$(CXX) $(CFLAGS) $^ $(CPUOPT) -L$(BIN_PATH) $(LFLAGS) -ljpeg -lpng16 -lz -l$(BIN_NM) -o $@
+	
